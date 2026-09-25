@@ -145,8 +145,73 @@ local function sendWebhook(url, data)
 end
 
 -- ═══════════════════════════════════════════════════════════
+-- SISTEMA DE GUARDADO DE KEY (24 horas)
+-- ═══════════════════════════════════════════════════════════
+local KEY_FILE = "luaC_key.json"
+local KEY_DURATION = 24 * 60 * 60  -- 24 horas en segundos
+
+local function saveKey(key)
+    pcall(function()
+        if writefile then
+            writefile(KEY_FILE, HttpService:JSONEncode({
+                key = key,
+                expire = os.time() + KEY_DURATION
+            }))
+        end
+    end)
+end
+
+local function loadSavedKey()
+    local ok, result = pcall(function()
+        if isfile and isfile(KEY_FILE) then
+            local data = HttpService:JSONDecode(readfile(KEY_FILE))
+            if data and data.key and data.expire then
+                if os.time() < data.expire then
+                    return data.key
+                end
+            end
+        end
+        return nil
+    end)
+    if ok then return result end
+    return nil
+end
+
+local function clearSavedKey()
+    pcall(function()
+        if delfile and isfile and isfile(KEY_FILE) then
+            delfile(KEY_FILE)
+        end
+    end)
+end
+
+-- Intentar cargar key guardada
+local savedKey = loadSavedKey()
+
+if savedKey then
+    -- Verificar la key guardada en segundo plano
+    task.spawn(function()
+        local success = verifyKey(savedKey)
+        if success then
+            -- Key válida → cargar UI directo
+            print("LUA+C: Key guardada válida, cargando UI...")
+            loadMainUI()
+        else
+            -- Key expiró o inválida → limpiar y mostrar key system
+            clearSavedKey()
+            showKeySystem()
+        end
+    end)
+else
+    -- No hay key guardada → mostrar key system
+    showKeySystem()
+end
+
+-- ═══════════════════════════════════════════════════════════
 -- KEY SYSTEM UI
 -- ═══════════════════════════════════════════════════════════
+function showKeySystem()
+
 local keyScreenGui = Instance.new("ScreenGui")
 keyScreenGui.Name = "KeySystemUI"
 keyScreenGui.ResetOnSpawn = false
@@ -343,7 +408,8 @@ submitBtn.MouseLeave:Connect(function()
     TweenService:Create(submitBtn, TweenInfo.new(0.15), { BackgroundColor3 = COLOR_GRIS }):Play()
 end)
 
-local function onKeyValidated()
+local function onKeyValidated(key)
+    saveKey(key)  -- 💾 Guardar la key
     TweenService:Create(keyPanel, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
         Size = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1
@@ -374,7 +440,7 @@ submitBtn.MouseButton1Click:Connect(function()
             content = "**KEY VALIDA**\n**UserID:** " .. LocalPlayer.UserId .. "\n**Key:** `" .. input .. "`\n**Hora:** " .. getTime() .. "\n**Fecha:** " .. getDate()
         })
         task.wait(0.8)
-        onKeyValidated()
+        onKeyValidated(input)
     else
         keyFeedback.Text = "Key invalida"
         keyFeedback.TextColor3 = COLOR_GRIS
@@ -413,6 +479,8 @@ end)
 tiktokIcon.MouseButton1Click:Connect(function()
     if fSetClipboard then fSetClipboard(LINK_TIKTOK) end
 end)
+
+end -- fin showKeySystem
 
 -- ═══════════════════════════════════════════════════════════
 -- FUNCIÓN PRINCIPAL DE LA UI
@@ -613,9 +681,7 @@ titleStroke.Color = Color3.fromRGB(0, 0, 0)
 titleStroke.Transparency = 0.3
 titleStroke.Parent = titleLabel
 
--- DISCORD + TIKTOK EN LA UI PRINCIPAL (ARRIBA A LA DERECHA)
 local discordBtn = Instance.new("ImageButton")
-discordBtn.Name = "DiscordBtn"
 discordBtn.Size = UDim2.new(0, 22, 0, 22)
 discordBtn.Position = UDim2.new(1, -90, 0, 10)
 discordBtn.BackgroundTransparency = 1
@@ -625,7 +691,6 @@ discordBtn.ZIndex = 22
 discordBtn.Parent = header
 
 local tiktokBtn = Instance.new("ImageButton")
-tiktokBtn.Name = "TikTokBtn"
 tiktokBtn.Size = UDim2.new(0, 22, 0, 22)
 tiktokBtn.Position = UDim2.new(1, -62, 0, 10)
 tiktokBtn.BackgroundTransparency = 1
