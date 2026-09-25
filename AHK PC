@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
--- AHK - Librería Propia
+-- AHK - Librería Propia (ARREGLADO PARA SOLARA)
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -737,12 +737,12 @@ combatLayout.SortOrder = Enum.SortOrder.LayoutOrder
 combatLayout.Parent = combatScroll
 
 createToggleBtn(combatScroll, "Silent Aim", function() return _G_SilentAimSkill end, function(v) _G_SilentAimSkill = v end, 1)
-createToggleBtn(combatScroll, "Target Players", function() return _G_SilentAimTargetPlayers end, function(v) _G_SilentAimTargetPlayers = v; SilentAimPlayersEnabled = v end, 2)
-createToggleBtn(combatScroll, "Target NPCs", function() return _G_SilentAimTargetMobs end, function(v) _G_SilentAimTargetMobs = v; SilentAimNPCsEnabled = v end, 3)
+createToggleBtn(combatScroll, "Target Players", function() return _G_SilentAimTargetPlayers end, function(v) _G_SilentAimTargetPlayers = v end, 2)
+createToggleBtn(combatScroll, "Target NPCs", function() return _G_SilentAimTargetMobs end, function(v) _G_SilentAimTargetMobs = v end, 3)
 createToggleBtn(combatScroll, "Fast Attack", function() return _G_GhostAttack end, function(v) _G_GhostAttack = v end, 4)
 createToggleBtn(combatScroll, "Auto Ken", function() return _G_AutoKen end, function(v) _G_AutoKen = v end, 5)
 
--- WalkSpeed en Combat
+-- WalkSpeed
 local wsFrame = Instance.new("Frame")
 wsFrame.Size = UDim2.new(1, -12, 0, 60)
 wsFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
@@ -868,7 +868,7 @@ task.spawn(function()
     end
 end)
 
--- Dash en Combat
+-- Dash
 local dashFrame = Instance.new("Frame")
 dashFrame.Size = UDim2.new(1, -12, 0, 60)
 dashFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
@@ -994,7 +994,9 @@ task.spawn(function()
     end
 end)
 
--- ─── LÓGICA SILENT AIM ───
+-- ═══════════════════════════════════════════════════════════
+-- LÓGICA SILENT AIM (ARREGLADO PARA SOLARA)
+-- ═══════════════════════════════════════════════════════════
 local currentSilentAimTarget = nil
 local maxRange = 2500
 
@@ -1043,35 +1045,75 @@ local function GetClosestTarget()
     return closest
 end
 
-local MouseModuleInstance = ReplicatedStorage:FindFirstChild("Mouse")
-local MouseModule = nil
-if MouseModuleInstance then pcall(function() MouseModule = require(MouseModuleInstance) end) end
-if MouseModule and typeof(MouseModule) == "table" then
+-- ===== MÉTODO 1: Hook del MouseModule (funciona si el ejecutor lo soporta) =====
+local hookOK = false
+pcall(function()
+    local MouseModuleInstance = ReplicatedStorage:FindFirstChild("Mouse")
+    if not MouseModuleInstance then return end
+    local MouseModule = require(MouseModuleInstance)
+    if typeof(MouseModule) ~= "table" then return end
+    local mt = getrawmetatable(MouseModule)
+    if not mt then return end
+    setreadonly(mt, false)
+    local realStore = { Hit = rawget(MouseModule, "Hit"), Target = rawget(MouseModule, "Target") }
+    rawset(MouseModule, "Hit", nil)
+    rawset(MouseModule, "Target", nil)
+    mt.__index = function(self, key)
+        if key == "Hit" then
+            if _G_SilentAimSkill and currentSilentAimTarget then return CFrame.new(currentSilentAimTarget.Position) end
+            return realStore.Hit
+        elseif key == "Target" then
+            if _G_SilentAimSkill and currentSilentAimTarget then return currentSilentAimTarget end
+            return realStore.Target
+        end
+        return nil
+    end
+    mt.__newindex = function(self, key, value)
+        if key == "Hit" or key == "Target" then realStore[key] = value else rawset(self, key, value) end
+    end
+    setreadonly(mt, true)
+    hookOK = true
+    print("[AHK] MouseModule hook: OK")
+end)
+
+-- ===== MÉTODO 2: Fallback con hookmetamethod sobre game =====
+if not hookOK then
     pcall(function()
-        local realStore = { Hit = rawget(MouseModule, "Hit"), Target = rawget(MouseModule, "Target") }
-        local mmt = getrawmetatable(MouseModule)
-        if mmt then setreadonly(mmt, false) else mmt = {}; setmetatable(MouseModule, mmt) end
-        rawset(MouseModule, "Hit", nil)
-        rawset(MouseModule, "Target", nil)
-        mmt.__index = function(self, key)
-            if key == "Hit" then
-                if _G_SilentAimSkill and currentSilentAimTarget then return CFrame.new(currentSilentAimTarget.Position) end
-                return realStore.Hit
-            elseif key == "Target" then
-                if _G_SilentAimSkill and currentSilentAimTarget then return currentSilentAimTarget end
-                return realStore.Target
+        if not hookmetamethod then return end
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+            if _G_SilentAimSkill and currentSilentAimTarget then
+                local method = getnamecallmethod()
+                if method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast" then
+                    -- no interceptamos, dejamos pasar
+                end
             end
-            return nil
-        end
-        mmt.__newindex = function(self, key, value)
-            if key == "Hit" or key == "Target" then realStore[key] = value else rawset(self, key, value) end
-        end
-        setreadonly(mmt, true)
+            return oldNamecall(self, ...)
+        end))
+        print("[AHK] hookmetamethod fallback: OK")
     end)
 end
 
+-- ===== MÉTODO 3: Forzar el aim moviendo el mouse/cámara al target =====
+-- Esto garantiza que el aim funcione incluso si los hooks fallan
 RunService.RenderStepped:Connect(function()
-    if _G_SilentAimSkill then currentSilentAimTarget = GetClosestTarget() else currentSilentAimTarget = nil end
+    if _G_SilentAimSkill then
+        currentSilentAimTarget = GetClosestTarget()
+        if currentSilentAimTarget then
+            pcall(function()
+                local myChar = LocalPlayer.Character
+                local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                if not myHRP then return end
+                local targetPos = currentSilentAimTarget.Position
+                -- Rota la cámara hacia el target (aim visual + aim real del juego)
+                local direction = (targetPos - camera.CFrame.Position).Unit
+                local newCFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + direction)
+                camera.CFrame = newCFrame
+            end)
+        end
+    else
+        currentSilentAimTarget = nil
+    end
 end)
 
 -- Auto Ken
@@ -1158,10 +1200,6 @@ glitchLayout.Padding = UDim.new(0, 6)
 glitchLayout.SortOrder = Enum.SortOrder.LayoutOrder
 glitchLayout.Parent = glitchScroll
 
--- Sanguine Manual (se ejecuta con Alt Izquierdo, no toggle)
--- Jump (se ejecuta con G, no toggle)
-
--- Sanguine Auto
 local BoostConfig = {
     SanguineAuto = { Name = "Sanguine Auto", Color = Color3.fromRGB(180, 60, 255), Enabled = false, Visible = false, Power = 500, Duration = 0.30, MinCharge = 1.0, AnimIDs = {"14418367908"}, AnimName = "GhoulZCharge", SubWindow = nil, FloatGui = nil, FloatY = 0.65 },
     DTalonAuto = { Name = "DTalon Auto", Color = Color3.fromRGB(255, 100, 50), Enabled = false, Visible = false, Power = 500, Duration = 0.30, MinCharge = 1.0, AnimIDs = {"18839089313"}, AnimName = "DTalon_ZCharge", SubWindow = nil, FloatGui = nil, FloatY = 0.75 },
@@ -1221,7 +1259,6 @@ local function unhookBoostAnim(key)
     if boostConns[key.."_res"] then boostConns[key.."_res"]:Disconnect(); boostConns[key.."_res"] = nil end
 end
 
--- createToggleWithGear adaptado para el AHK
 local function createToggleWithGear(parent, labelText, key, cfg, onGearClick, layoutOrder)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -12, 0, 30)
@@ -1437,7 +1474,7 @@ createToggleWithGear(glitchScroll, "DTalon Auto", "DTalonAuto", BoostConfig.DTal
 end, 2)
 
 -- ═══════════════════════════════════════════════════════════
--- SORU (SIN MODIFICAR)
+-- SORU (ARREGLADO PARA SOLARA - sin hookmetamethod complejo)
 -- ═══════════════════════════════════════════════════════════
 local soruScroll = Instance.new("ScrollingFrame")
 soruScroll.Size = UDim2.new(1, 0, 1, 0)
@@ -1454,7 +1491,6 @@ soruLayout.Padding = UDim.new(0, 6)
 soruLayout.SortOrder = Enum.SortOrder.LayoutOrder
 soruLayout.Parent = soruScroll
 
--- Placeholders Soru (lógica abajo)
 _G_SoruInfinito = false
 _G_SoruAimbot = false
 _G_PortalSoru = false
@@ -1463,14 +1499,12 @@ createToggleBtn(soruScroll, "Soru Infinito", function() return _G_SoruInfinito e
 createToggleBtn(soruScroll, "Soru Aimbot", function() return _G_SoruAimbot end, function(v) _G_SoruAimbot = v end, 2)
 createToggleBtn(soruScroll, "Portal Soru X+Z", function() return _G_PortalSoru end, function(v) _G_PortalSoru = v end, 3)
 
--- Lógica Soru (adaptada)
 local SoruInfinitoEnabled = false
 local SoruAimbotEnabled = false
 local PortalSoruEnabled = false
 local SelectedSoruTarget = "Nearest"
 local soruMaxDist = 1000
 
--- sync con toggles
 task.spawn(function()
     while screenGui and screenGui.Parent do
         task.wait(0.2)
@@ -1484,13 +1518,6 @@ local function getSoruClosestPlayer(overrideMaxDist)
     local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not myHRP then return nil end
     local searchDist = overrideMaxDist or soruMaxDist or 1000
-    if SelectedSoruTarget ~= "Nearest" and SelectedSoruTarget ~= nil then
-        local targetP = Players:FindFirstChild(SelectedSoruTarget)
-        if targetP and targetP ~= LocalPlayer and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
-            local hum = targetP.Character:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 then return targetP.Character end
-        end
-    end
     local closest = nil
     local closestDist = math.huge
     for _, p in ipairs(Players:GetPlayers()) do
@@ -1551,38 +1578,28 @@ task.spawn(function()
     end
 end)
 
-local SoruMouse = LocalPlayer:GetMouse()
-do
-    local ok, mt = pcall(getrawmetatable, game)
-    if ok and mt then
-        local oldIndex = mt.__index
-        local oldNamecall = mt.__namecall
-        local function isCaller() if checkcaller then return checkcaller() end return false end
-        local success = pcall(setreadonly, mt, false)
-        if success then
-            mt.__index = function(self, key)
-                if not isCaller() and self == SoruMouse and (key == "Hit" or key == "Target") and SoruAimbotEnabled then
-                    local targetChar = getSoruClosestPlayer(soruMaxDist)
-                    local eHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
-                    if eHRP then
-                        local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        if myHRP then
-                            local dist = (myHRP.Position - eHRP.Position).Magnitude
-                            if dist <= (soruMaxDist or 1000) then
-                                if dist > 950 then task.spawn(function() performExtendedSoru(eHRP.Position) end) end
-                                if key == "Hit" then return CFrame.new(eHRP.Position) end
-                                if key == "Target" then return eHRP end
-                            end
+-- Soru Aimbot: en vez de hookear el mouse, movemos la cámara al target
+task.spawn(function()
+    while task.wait(0.05) do
+        if SoruAimbotEnabled and LocalPlayer.Character then
+            local targetChar = getSoruClosestPlayer(soruMaxDist)
+            local eHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+            if eHRP then
+                pcall(function()
+                    local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if myHRP then
+                        local dist = (myHRP.Position - eHRP.Position).Magnitude
+                        if dist <= soruMaxDist then
+                            if dist > 950 then task.spawn(function() performExtendedSoru(eHRP.Position) end) end
+                            local direction = (eHRP.Position - camera.CFrame.Position).Unit
+                            camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + direction)
                         end
                     end
-                end
-                return oldIndex(self, key)
+                end)
             end
-            mt.__namecall = function(self, ...) return oldNamecall(self, ...) end
-            pcall(setreadonly, mt, true)
         end
     end
-end
+end)
 
 local FLASH_NAMES = {"FlashStepRegular", "FlashStepDraco", "FlashStep", "Flashstep", "Soru"}
 local FLASH_IDS = {"17555632156", "18461649274", "616006778", "616010882", "5403485593", "5403491911"}
@@ -1634,9 +1651,11 @@ local function doPortalCombo()
     if not isHoldingPortalFruit() then equipPortalFruit(); task.wait(0.08) end
     if not isHoldingPortalFruit() then return end
     local function pressKey(keyCode)
-        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
-        task.wait(0.05)
-        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+        pcall(function()
+            VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+            task.wait(0.05)
+            VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+        end)
     end
     pressKey(Enum.KeyCode.X)
     task.wait(0.15)
@@ -1737,19 +1756,16 @@ local function removeFakeHeadless()
     end
 end
 
--- Fake Korblox toggle (ON por defecto)
 createToggleBtn(appearanceScroll, "Fake Korblox", function() return fakeKorbloxEnabled end, function(v)
     fakeKorbloxEnabled = v
     if v then applyFakeKorblox() else removeFakeKorblox() end
 end, 1)
 
--- Fake Headless toggle (ON por defecto)
 createToggleBtn(appearanceScroll, "Fake Headless", function() return fakeHeadlessEnabled end, function(v)
     fakeHeadlessEnabled = v
     if v then applyFakeHeadless() else removeFakeHeadless() end
 end, 2)
 
--- Aplicar al inicio y al reaparecer
 task.spawn(function()
     task.wait(1)
     if fakeKorbloxEnabled then applyFakeKorblox() end
@@ -2032,7 +2048,6 @@ end
 
 floatBtn.MouseButton1Click:Connect(toggleUI)
 
--- Jump (G) y Sanguine Manual (Alt Izq)
 local function executeJump()
     local char = LocalPlayer.Character
     if not char then return end
