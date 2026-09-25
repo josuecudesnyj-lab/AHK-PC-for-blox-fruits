@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
--- AHK FOR PC - Librería Propia
+-- AHK - Librería Propia
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -10,52 +10,41 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Config
-local NOMBRE_SCRIPT = "AHK for PC"
+local NOMBRE_SCRIPT = "AHK"
 local IMAGEN_FONDO = "rbxassetid://99207554472358"
+local ICONO_BOTON = "rbxassetid://105608688810397"
 local COLOR_GRIS = Color3.fromRGB(75, 78, 88)
 local COLOR_GRIS_HOVER = Color3.fromRGB(100, 104, 115)
 local COLOR_GRIS_OSCURO = Color3.fromRGB(22, 22, 28)
 local COLOR_GRIS_PANEL = Color3.fromRGB(30, 30, 38)
 
--- Stats del jugador
-local stats = {
-    muertes = 0,
-    kills = 0,
-    bountyGanado = 0
-}
+local stats = { muertes = 0, kills = 0, bountyGanado = 0 }
 local ultimoBounty = 0
-
--- FPS / PING
 local currentFPS = 0
 local currentPing = 0
 
--- Limpiar UI anterior
-local oldGui = PlayerGui:FindFirstChild("AHKPCUI")
+local oldGui = PlayerGui:FindFirstChild("AHKUI")
 if oldGui then oldGui:Destroy() end
 
 -- ═══════════════════════════════════════════════════════════
 -- SCREEN GUI
 -- ═══════════════════════════════════════════════════════════
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AHKPCUI"
+screenGui.Name = "AHKUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = PlayerGui
 
--- ═══════════════════════════════════════════════════════════
--- BOTÓN FLOTANTE
--- ═══════════════════════════════════════════════════════════
-local floatBtn = Instance.new("TextButton")
+-- BOTÓN FLOTANTE (con imagen)
+local floatBtn = Instance.new("ImageButton")
 floatBtn.Name = "FloatButton"
 floatBtn.Size = UDim2.new(0, 45, 0, 45)
 floatBtn.Position = UDim2.new(0, 20, 0.5, -22)
 floatBtn.BackgroundColor3 = COLOR_GRIS_OSCURO
 floatBtn.BorderSizePixel = 0
-floatBtn.Text = "S"
-floatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-floatBtn.TextSize = 22
-floatBtn.Font = Enum.Font.GothamBold
+floatBtn.Image = ICONO_BOTON
+floatBtn.ScaleType = Enum.ScaleType.Fit
 floatBtn.AutoButtonColor = false
 floatBtn.ZIndex = 20
 floatBtn.Parent = screenGui
@@ -70,19 +59,13 @@ floatStroke.Color = COLOR_GRIS
 floatStroke.Parent = floatBtn
 
 floatBtn.MouseEnter:Connect(function()
-    TweenService:Create(floatBtn, TweenInfo.new(0.15), {
-        BackgroundColor3 = COLOR_GRIS_PANEL
-    }):Play()
+    TweenService:Create(floatBtn, TweenInfo.new(0.15), { BackgroundColor3 = COLOR_GRIS_PANEL }):Play()
 end)
 floatBtn.MouseLeave:Connect(function()
-    TweenService:Create(floatBtn, TweenInfo.new(0.15), {
-        BackgroundColor3 = COLOR_GRIS_OSCURO
-    }):Play()
+    TweenService:Create(floatBtn, TweenInfo.new(0.15), { BackgroundColor3 = COLOR_GRIS_OSCURO }):Play()
 end)
 
--- ═══════════════════════════════════════════════════════════
--- OVERLAY FPS / PING (Arriba a la derecha)
--- ═══════════════════════════════════════════════════════════
+-- OVERLAY FPS / PING
 local overlayFPS = Instance.new("Frame")
 overlayFPS.Name = "FPSPingOverlay"
 overlayFPS.Size = UDim2.new(0, 160, 0, 26)
@@ -104,7 +87,6 @@ overlayStroke.Transparency = 0.3
 overlayStroke.Parent = overlayFPS
 
 local overlayText = Instance.new("TextLabel")
-overlayText.Name = "OverlayText"
 overlayText.Size = UDim2.new(1, 0, 1, 0)
 overlayText.BackgroundTransparency = 1
 overlayText.Text = "FPS: 0 | Ping: 0ms"
@@ -114,9 +96,6 @@ overlayText.Font = Enum.Font.GothamBold
 overlayText.ZIndex = 26
 overlayText.Parent = overlayFPS
 
--- ═══════════════════════════════════════════════════════════
--- LOOP FPS / PING (igual que Sacred AHK)
--- ═══════════════════════════════════════════════════════════
 local frameCount = 0
 local lastTime = tick()
 
@@ -134,21 +113,65 @@ task.spawn(function()
         end
         frameCount = 0
         lastTime = now
-
         pcall(function()
             currentPing = math.floor(LocalPlayer:GetNetworkPing() * 1000)
         end)
-
         overlayText.Text = "FPS: " .. currentFPS .. " | Ping: " .. currentPing .. "ms"
     end
 end)
 
 -- ═══════════════════════════════════════════════════════════
--- PANEL PRINCIPAL
+-- FAST FLAGS SYSTEM
 -- ═══════════════════════════════════════════════════════════
+local FastFlagsActivos = false
+
+local FastFlagsList = {
+    ["DFIntTaskSchedulerTargetFps"] = 240,
+    ["FFlagTaskSchedulerBlockingPolicy"] = true,
+    ["FFlagRenderSmoothAnimation"] = true,
+    ["FIntRakNetLoopMs"] = 1,
+    ["DFIntConnectionMTUSize"] = 1400,
+    ["DFIntS2PhysicsSenderRate"] = 120,
+    ["FFlagDisablePostFx"] = true,
+    ["FFlagDisableVoiceChat"] = true,
+    ["FIntRenderMeshOptimization"] = 2,
+    ["DFIntMinimalTerrainScaling"] = 1,
+    ["FIntFRMQualityLevel"] = 1,
+    ["DFIntTerrainWaterTextureQuality"] = 0,
+    ["FFlagFastGPULightCulling3"] = true,
+    ["FFlagRenderFutureLighting"] = false,
+}
+
+local function setFF(name, value)
+    pcall(function()
+        if setfflag then setfflag(name, tostring(value)) end
+    end)
+end
+
+local function aplicarFastFlags()
+    for name, value in pairs(FastFlagsList) do setFF(name, value) end
+end
+
+local function quitarFastFlags()
+    pcall(function()
+        if setfflag then
+            setfflag("DFIntTaskSchedulerTargetFps", "60")
+            setfflag("FIntRakNetLoopMs", "20")
+            setfflag("DFIntS2PhysicsSenderRate", "60")
+            setfflag("FFlagDisablePostFx", "false")
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════
+-- PANEL PRINCIPAL (15% más grande)
+-- ═══════════════════════════════════════════════════════════
+local PANEL_W = math.floor(750 * 1.15)
+local PANEL_H = math.floor(450 * 1.15)
+
 local mainPanel = Instance.new("Frame")
 mainPanel.Name = "MainPanel"
-mainPanel.Size = UDim2.new(0, 750, 0, 450)
+mainPanel.Size = UDim2.new(0, PANEL_W, 0, PANEL_H)
 mainPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
 mainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 mainPanel.BackgroundColor3 = COLOR_GRIS_OSCURO
@@ -168,32 +191,32 @@ mainStroke.Color = COLOR_GRIS
 mainStroke.Transparency = 0.2
 mainStroke.Parent = mainPanel
 
+-- FONDO IMAGEN (visible al 85%)
 local bgImage = Instance.new("ImageLabel")
 bgImage.Name = "BackgroundImage"
 bgImage.Size = UDim2.new(1, 0, 1, 0)
 bgImage.BackgroundTransparency = 1
 bgImage.Image = IMAGEN_FONDO
 bgImage.ScaleType = Enum.ScaleType.Crop
+bgImage.ImageTransparency = 0.15  -- 15% transparente = 85% visible
 bgImage.ZIndex = 16
 bgImage.Parent = mainPanel
 
+-- Overlay oscuro LIGERO (para que se lean textos, pero la imagen se ve)
 local darkOverlay = Instance.new("Frame")
 darkOverlay.Size = UDim2.new(1, 0, 1, 0)
 darkOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-darkOverlay.BackgroundTransparency = 0.7
+darkOverlay.BackgroundTransparency = 0.65  -- Overlay al 35%
 darkOverlay.BorderSizePixel = 0
 darkOverlay.ZIndex = 17
 darkOverlay.Parent = mainPanel
 
--- ═══════════════════════════════════════════════════════════
 -- HEADER
--- ═══════════════════════════════════════════════════════════
 local header = Instance.new("Frame")
 header.Name = "Header"
-header.Size = UDim2.new(1, 0, 0, 45)
-header.Position = UDim2.new(0, 0, 0, 0)
+header.Size = UDim2.new(1, 0, 0, 50)
 header.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
-header.BackgroundTransparency = 0.3
+header.BackgroundTransparency = 0.4
 header.BorderSizePixel = 0
 header.ZIndex = 20
 header.Parent = mainPanel
@@ -203,12 +226,12 @@ headerCorner.CornerRadius = UDim.new(0, 14)
 headerCorner.Parent = header
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0, 300, 0, 45)
-titleLabel.Position = UDim2.new(0, 20, 0, 0)
+titleLabel.Size = UDim2.new(0, 300, 0, 50)
+titleLabel.Position = UDim2.new(0, 22, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "AHK FOR PC"
+titleLabel.Text = "AHK"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextSize = 18
+titleLabel.TextSize = 20
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.ZIndex = 21
@@ -220,11 +243,9 @@ titleStroke.Color = Color3.fromRGB(0, 0, 0)
 titleStroke.Transparency = 0.3
 titleStroke.Parent = titleLabel
 
--- Botón X (cierra TODO el script)
 local closeAllBtn = Instance.new("TextButton")
-closeAllBtn.Name = "CloseAllBtn"
-closeAllBtn.Size = UDim2.new(0, 28, 0, 28)
-closeAllBtn.Position = UDim2.new(1, -38, 0, 8)
+closeAllBtn.Size = UDim2.new(0, 30, 0, 30)
+closeAllBtn.Position = UDim2.new(1, -42, 0, 10)
 closeAllBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
 closeAllBtn.BorderSizePixel = 0
 closeAllBtn.Text = "X"
@@ -240,34 +261,25 @@ closeCorner.CornerRadius = UDim.new(0, 6)
 closeCorner.Parent = closeAllBtn
 
 closeAllBtn.MouseEnter:Connect(function()
-    TweenService:Create(closeAllBtn, TweenInfo.new(0.15), {
-        BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-    }):Play()
+    TweenService:Create(closeAllBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(220, 60, 60) }):Play()
 end)
 closeAllBtn.MouseLeave:Connect(function()
-    TweenService:Create(closeAllBtn, TweenInfo.new(0.15), {
-        BackgroundColor3 = Color3.fromRGB(40, 40, 48)
-    }):Play()
+    TweenService:Create(closeAllBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(40, 40, 48) }):Play()
 end)
 
--- ═══════════════════════════════════════════════════════════
--- CONTENEDOR PRINCIPAL
--- ═══════════════════════════════════════════════════════════
+-- CONTENEDOR
 local contentContainer = Instance.new("Frame")
-contentContainer.Name = "ContentContainer"
-contentContainer.Size = UDim2.new(1, -20, 1, -60)
-contentContainer.Position = UDim2.new(0, 10, 0, 50)
+contentContainer.Size = UDim2.new(1, -22, 1, -68)
+contentContainer.Position = UDim2.new(0, 11, 0, 56)
 contentContainer.BackgroundTransparency = 1
 contentContainer.ZIndex = 20
 contentContainer.Parent = mainPanel
 
--- COLUMNA IZQUIERDA (TABS)
+-- COLUMNA IZQUIERDA
 local leftColumn = Instance.new("Frame")
-leftColumn.Name = "LeftColumn"
-leftColumn.Size = UDim2.new(0, 140, 1, 0)
-leftColumn.Position = UDim2.new(0, 0, 0, 0)
+leftColumn.Size = UDim2.new(0, 160, 1, 0)
 leftColumn.BackgroundColor3 = COLOR_GRIS_PANEL
-leftColumn.BackgroundTransparency = 0.3
+leftColumn.BackgroundTransparency = 0.5  -- más transparente para ver la imagen
 leftColumn.BorderSizePixel = 0
 leftColumn.ZIndex = 20
 leftColumn.Parent = contentContainer
@@ -278,26 +290,25 @@ leftCorner.Parent = leftColumn
 
 local tabsTitle = Instance.new("TextLabel")
 tabsTitle.Size = UDim2.new(1, -20, 0, 25)
-tabsTitle.Position = UDim2.new(0, 10, 0, 10)
+tabsTitle.Position = UDim2.new(0, 12, 0, 12)
 tabsTitle.BackgroundTransparency = 1
 tabsTitle.Text = "TABS"
-tabsTitle.TextColor3 = Color3.fromRGB(180, 180, 190)
-tabsTitle.TextSize = 11
+tabsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+tabsTitle.TextSize = 12
 tabsTitle.Font = Enum.Font.GothamBold
 tabsTitle.TextXAlignment = Enum.TextXAlignment.Left
 tabsTitle.ZIndex = 21
 tabsTitle.Parent = leftColumn
 
 local tabsContainer = Instance.new("Frame")
-tabsContainer.Name = "TabsContainer"
-tabsContainer.Size = UDim2.new(1, -20, 1, -45)
-tabsContainer.Position = UDim2.new(0, 10, 0, 40)
+tabsContainer.Size = UDim2.new(1, -22, 1, -50)
+tabsContainer.Position = UDim2.new(0, 11, 0, 45)
 tabsContainer.BackgroundTransparency = 1
 tabsContainer.ZIndex = 21
 tabsContainer.Parent = leftColumn
 
 local tabsLayout = Instance.new("UIListLayout")
-tabsLayout.Padding = UDim.new(0, 6)
+tabsLayout.Padding = UDim.new(0, 7)
 tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabsLayout.Parent = tabsContainer
 
@@ -306,14 +317,13 @@ local activeTab = nil
 
 local function createTab(nombre, layoutOrder)
     local btn = Instance.new("TextButton")
-    btn.Name = nombre .. "Tab"
-    btn.Size = UDim2.new(1, 0, 0, 34)
+    btn.Size = UDim2.new(1, 0, 0, 38)
     btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    btn.BackgroundTransparency = 0.3
+    btn.BackgroundTransparency = 0.4
     btn.BorderSizePixel = 0
     btn.Text = nombre
-    btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    btn.TextSize = 12
+    btn.TextColor3 = Color3.fromRGB(220, 220, 230)
+    btn.TextSize = 13
     btn.Font = Enum.Font.GothamBold
     btn.AutoButtonColor = false
     btn.LayoutOrder = layoutOrder
@@ -325,13 +335,12 @@ local function createTab(nombre, layoutOrder)
     return btn
 end
 
--- COLUMNA CENTRAL (CONTENIDO)
+-- COLUMNA CENTRAL
 local centerColumn = Instance.new("Frame")
-centerColumn.Name = "CenterColumn"
-centerColumn.Size = UDim2.new(0, 340, 1, 0)
-centerColumn.Position = UDim2.new(0, 150, 0, 0)
+centerColumn.Size = UDim2.new(0, 390, 1, 0)
+centerColumn.Position = UDim2.new(0, 172, 0, 0)
 centerColumn.BackgroundColor3 = COLOR_GRIS_PANEL
-centerColumn.BackgroundTransparency = 0.3
+centerColumn.BackgroundTransparency = 0.5
 centerColumn.BorderSizePixel = 0
 centerColumn.ZIndex = 20
 centerColumn.Parent = contentContainer
@@ -341,33 +350,30 @@ centerCorner.CornerRadius = UDim.new(0, 10)
 centerCorner.Parent = centerColumn
 
 local centerTitle = Instance.new("TextLabel")
-centerTitle.Name = "CenterTitle"
-centerTitle.Size = UDim2.new(1, -20, 0, 25)
-centerTitle.Position = UDim2.new(0, 10, 0, 10)
+centerTitle.Size = UDim2.new(1, -22, 0, 25)
+centerTitle.Position = UDim2.new(0, 12, 0, 12)
 centerTitle.BackgroundTransparency = 1
-centerTitle.Text = "CONTENIDO"
-centerTitle.TextColor3 = Color3.fromRGB(180, 180, 190)
-centerTitle.TextSize = 11
+centerTitle.Text = "CONTENT"
+centerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+centerTitle.TextSize = 12
 centerTitle.Font = Enum.Font.GothamBold
 centerTitle.TextXAlignment = Enum.TextXAlignment.Left
 centerTitle.ZIndex = 21
 centerTitle.Parent = centerColumn
 
 local centerContent = Instance.new("Frame")
-centerContent.Name = "CenterContent"
-centerContent.Size = UDim2.new(1, -20, 1, -45)
-centerContent.Position = UDim2.new(0, 10, 0, 40)
+centerContent.Size = UDim2.new(1, -22, 1, -50)
+centerContent.Position = UDim2.new(0, 11, 0, 45)
 centerContent.BackgroundTransparency = 1
 centerContent.ZIndex = 21
 centerContent.Parent = centerColumn
 
--- COLUMNA DERECHA (STATS)
+-- COLUMNA DERECHA
 local rightColumn = Instance.new("Frame")
-rightColumn.Name = "RightColumn"
-rightColumn.Size = UDim2.new(0, 240, 1, 0)
-rightColumn.Position = UDim2.new(1, -240, 0, 0)
+rightColumn.Size = UDim2.new(0, 278, 1, 0)
+rightColumn.Position = UDim2.new(1, -278, 0, 0)
 rightColumn.BackgroundColor3 = COLOR_GRIS_PANEL
-rightColumn.BackgroundTransparency = 0.3
+rightColumn.BackgroundTransparency = 0.5
 rightColumn.BorderSizePixel = 0
 rightColumn.ZIndex = 20
 rightColumn.Parent = contentContainer
@@ -377,23 +383,22 @@ rightCorner.CornerRadius = UDim.new(0, 10)
 rightCorner.Parent = rightColumn
 
 local rightTitle = Instance.new("TextLabel")
-rightTitle.Size = UDim2.new(1, -20, 0, 25)
-rightTitle.Position = UDim2.new(0, 10, 0, 10)
+rightTitle.Size = UDim2.new(1, -22, 0, 25)
+rightTitle.Position = UDim2.new(0, 12, 0, 12)
 rightTitle.BackgroundTransparency = 1
-rightTitle.Text = "ESTADÍSTICAS"
-rightTitle.TextColor3 = Color3.fromRGB(180, 180, 190)
-rightTitle.TextSize = 11
+rightTitle.Text = "STATS"
+rightTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+rightTitle.TextSize = 12
 rightTitle.Font = Enum.Font.GothamBold
 rightTitle.TextXAlignment = Enum.TextXAlignment.Left
 rightTitle.ZIndex = 21
 rightTitle.Parent = rightColumn
 
-local function createStatRow(parent, label, valorInicial, orden)
+local function createStatRow(parent, label, valorInicial, orden, altura)
     local row = Instance.new("Frame")
-    row.Name = label .. "Row"
-    row.Size = UDim2.new(1, 0, 0, 40)
+    row.Size = UDim2.new(1, 0, 0, altura or 42)
     row.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    row.BackgroundTransparency = 0.4
+    row.BackgroundTransparency = 0.5
     row.BorderSizePixel = 0
     row.LayoutOrder = orden
     row.ZIndex = 21
@@ -403,25 +408,24 @@ local function createStatRow(parent, label, valorInicial, orden)
     c.Parent = row
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -15, 0, 18)
-    lbl.Position = UDim2.new(0, 10, 0, 4)
+    lbl.Size = UDim2.new(1, -18, 0, 18)
+    lbl.Position = UDim2.new(0, 12, 0, 5)
     lbl.BackgroundTransparency = 1
     lbl.Text = label
-    lbl.TextColor3 = Color3.fromRGB(180, 180, 190)
-    lbl.TextSize = 10
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+    lbl.TextSize = 11
     lbl.Font = Enum.Font.Gotham
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.ZIndex = 22
     lbl.Parent = row
 
     local val = Instance.new("TextLabel")
-    val.Name = "Valor"
-    val.Size = UDim2.new(1, -15, 0, 18)
-    val.Position = UDim2.new(0, 10, 0, 20)
+    val.Size = UDim2.new(1, -18, 0, 20)
+    val.Position = UDim2.new(0, 12, 0, 22)
     val.BackgroundTransparency = 1
     val.Text = tostring(valorInicial)
     val.TextColor3 = Color3.fromRGB(255, 255, 255)
-    val.TextSize = 14
+    val.TextSize = 15
     val.Font = Enum.Font.GothamBold
     val.TextXAlignment = Enum.TextXAlignment.Left
     val.ZIndex = 22
@@ -431,31 +435,90 @@ local function createStatRow(parent, label, valorInicial, orden)
 end
 
 local statsContainer = Instance.new("Frame")
-statsContainer.Name = "StatsContainer"
-statsContainer.Size = UDim2.new(1, -20, 1, -45)
-statsContainer.Position = UDim2.new(0, 10, 0, 40)
+statsContainer.Size = UDim2.new(1, -22, 1, -50)
+statsContainer.Position = UDim2.new(0, 11, 0, 45)
 statsContainer.BackgroundTransparency = 1
 statsContainer.ZIndex = 21
 statsContainer.Parent = rightColumn
 
 local statsLayout = Instance.new("UIListLayout")
-statsLayout.Padding = UDim.new(0, 6)
+statsLayout.Padding = UDim.new(0, 7)
 statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 statsLayout.Parent = statsContainer
 
-local levelLabel = createStatRow(statsContainer, "Nivel", "0", 1)
+local levelLabel = createStatRow(statsContainer, "Level", "0", 1)
 local bountyLabel = createStatRow(statsContainer, "Bounty", "0", 2)
-local conexionLabel = createStatRow(statsContainer, "Conexión", "0 ms", 3)
+local conexionLabel = createStatRow(statsContainer, "Ping", "0 ms", 3)
 local fpsLabel = createStatRow(statsContainer, "FPS", "0", 4)
-local bountyGanadoLabel = createStatRow(statsContainer, "Bounty Ganado", "0", 5)
-local muertesLabel = createStatRow(statsContainer, "Muertes", "0", 6)
+local bountyGanadoLabel = createStatRow(statsContainer, "Bounty Gained", "0", 5)
+local muertesLabel = createStatRow(statsContainer, "Deaths", "0", 6)
 local killsLabel = createStatRow(statsContainer, "Kills", "0", 7)
 
--- ═══════════════════════════════════════════════════════════
+-- USER INFO CARD
+local userCard = Instance.new("Frame")
+userCard.Size = UDim2.new(1, 0, 0, 90)
+userCard.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+userCard.BackgroundTransparency = 0.5
+userCard.BorderSizePixel = 0
+userCard.LayoutOrder = 8
+userCard.ZIndex = 21
+userCard.Parent = statsContainer
+local userCorner = Instance.new("UICorner")
+userCorner.CornerRadius = UDim.new(0, 6)
+userCorner.Parent = userCard
+
+local userAvatar = Instance.new("ImageLabel")
+userAvatar.Size = UDim2.new(0, 70, 0, 70)
+userAvatar.Position = UDim2.new(0, 10, 0, 10)
+userAvatar.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+userAvatar.BorderSizePixel = 0
+userAvatar.ScaleType = Enum.ScaleType.Crop
+userAvatar.ZIndex = 22
+userAvatar.Parent = userCard
+local avatarCorner = Instance.new("UICorner")
+avatarCorner.CornerRadius = UDim.new(1, 0)
+avatarCorner.Parent = userAvatar
+
+local avatarStroke = Instance.new("UIStroke")
+avatarStroke.Thickness = 2
+avatarStroke.Color = COLOR_GRIS
+avatarStroke.Parent = userAvatar
+
+local userName = Instance.new("TextLabel")
+userName.Size = UDim2.new(1, -95, 0, 22)
+userName.Position = UDim2.new(0, 88, 0, 15)
+userName.BackgroundTransparency = 1
+userName.Text = LocalPlayer.Name
+userName.TextColor3 = Color3.fromRGB(255, 255, 255)
+userName.TextSize = 14
+userName.Font = Enum.Font.GothamBold
+userName.TextXAlignment = Enum.TextXAlignment.Left
+userName.TextTruncate = Enum.TextTruncate.AtEnd
+userName.ZIndex = 22
+userName.Parent = userCard
+
+local userDisplay = Instance.new("TextLabel")
+userDisplay.Size = UDim2.new(1, -95, 0, 18)
+userDisplay.Position = UDim2.new(0, 88, 0, 38)
+userDisplay.BackgroundTransparency = 1
+userDisplay.Text = "@" .. LocalPlayer.DisplayName
+userDisplay.TextColor3 = Color3.fromRGB(200, 200, 210)
+userDisplay.TextSize = 11
+userDisplay.Font = Enum.Font.Gotham
+userDisplay.TextXAlignment = Enum.TextXAlignment.Left
+userDisplay.TextTruncate = Enum.TextTruncate.AtEnd
+userDisplay.ZIndex = 22
+userDisplay.Parent = userCard
+
+task.spawn(function()
+    pcall(function()
+        local content = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+        if content then userAvatar.Image = content end
+    end)
+end)
+
 -- NOTIFICACIONES
--- ═══════════════════════════════════════════════════════════
 local notifContainer = Instance.new("Frame")
-notifContainer.Name = "NotifContainer"
 notifContainer.Size = UDim2.new(0, 300, 1, 0)
 notifContainer.Position = UDim2.new(1, -320, 0, 0)
 notifContainer.BackgroundTransparency = 1
@@ -516,36 +579,31 @@ local function showNotif(titulo, texto)
     }):Play()
 
     task.delay(4, function()
-        TweenService:Create(notif, TweenInfo.new(0.3), {
-            Position = UDim2.new(1, 300, 0, 0)
-        }):Play()
+        TweenService:Create(notif, TweenInfo.new(0.3), { Position = UDim2.new(1, 300, 0, 0) }):Play()
         task.wait(0.35)
         notif:Destroy()
     end)
 end
 
--- ═══════════════════════════════════════════════════════════
 -- TABS
--- ═══════════════════════════════════════════════════════════
 local tabCombat = createTab("Combat", 1)
 local tabMovement = createTab("Movement", 2)
 local tabVisuals = createTab("Visuals", 3)
 local tabMisc = createTab("Misc", 4)
 
 tabsData = {
-    [tabCombat] = {titulo = "COMBAT", contenido = "Funciones de combate\nPróximamente..."},
-    [tabMovement] = {titulo = "MOVEMENT", contenido = "Funciones de movimiento\nPróximamente..."},
-    [tabVisuals] = {titulo = "VISUALS", contenido = "Funciones visuales\nPróximamente..."},
-    [tabMisc] = {titulo = "MISC", contenido = "Funciones varias\nPróximamente..."}
+    [tabCombat] = {titulo = "COMBAT", contenido = "Combat features\nComing soon..."},
+    [tabMovement] = {titulo = "MOVEMENT", contenido = "Movement features\nComing soon..."},
+    [tabVisuals] = {titulo = "VISUALS", contenido = "Visual features\nComing soon..."},
+    [tabMisc] = {titulo = "MISC", contenido = ""}
 }
 
 local centerTextLabel = Instance.new("TextLabel")
-centerTextLabel.Name = "CenterText"
 centerTextLabel.Size = UDim2.new(1, -20, 0, 200)
 centerTextLabel.Position = UDim2.new(0, 10, 0, 10)
 centerTextLabel.BackgroundTransparency = 1
-centerTextLabel.Text = "Selecciona una tab"
-centerTextLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+centerTextLabel.Text = "Select a tab"
+centerTextLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
 centerTextLabel.TextSize = 13
 centerTextLabel.Font = Enum.Font.Gotham
 centerTextLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -554,22 +612,166 @@ centerTextLabel.TextWrapped = true
 centerTextLabel.ZIndex = 22
 centerTextLabel.Parent = centerContent
 
+-- MISC CONTENT (Fast Flags)
+local miscContainer = Instance.new("Frame")
+miscContainer.Size = UDim2.new(1, -20, 1, -20)
+miscContainer.Position = UDim2.new(0, 10, 0, 10)
+miscContainer.BackgroundTransparency = 1
+miscContainer.Visible = false
+miscContainer.ZIndex = 22
+miscContainer.Parent = centerContent
+
+local ffCard = Instance.new("Frame")
+ffCard.Size = UDim2.new(1, 0, 0, 130)
+ffCard.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+ffCard.BackgroundTransparency = 0.5
+ffCard.BorderSizePixel = 0
+ffCard.ZIndex = 23
+ffCard.Parent = miscContainer
+
+local ffCorner = Instance.new("UICorner")
+ffCorner.CornerRadius = UDim.new(0, 8)
+ffCorner.Parent = ffCard
+
+local ffTitle = Instance.new("TextLabel")
+ffTitle.Size = UDim2.new(1, -20, 0, 24)
+ffTitle.Position = UDim2.new(0, 12, 0, 10)
+ffTitle.BackgroundTransparency = 1
+ffTitle.Text = "FAST FLAGS"
+ffTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ffTitle.TextSize = 13
+ffTitle.Font = Enum.Font.GothamBold
+ffTitle.TextXAlignment = Enum.TextXAlignment.Left
+ffTitle.ZIndex = 24
+ffTitle.Parent = ffCard
+
+local ffDesc = Instance.new("TextLabel")
+ffDesc.Size = UDim2.new(1, -20, 0, 20)
+ffDesc.Position = UDim2.new(0, 12, 0, 34)
+ffDesc.BackgroundTransparency = 1
+ffDesc.Text = "FPS Boost • Ping Optimizer • Less Lag"
+ffDesc.TextColor3 = Color3.fromRGB(220, 220, 230)
+ffDesc.TextSize = 11
+ffDesc.Font = Enum.Font.Gotham
+ffDesc.TextXAlignment = Enum.TextXAlignment.Left
+ffDesc.ZIndex = 24
+ffDesc.Parent = ffCard
+
+local ffToggleBtn = Instance.new("TextButton")
+ffToggleBtn.Size = UDim2.new(0, 60, 0, 26)
+ffToggleBtn.Position = UDim2.new(1, -72, 0, 10)
+ffToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+ffToggleBtn.BorderSizePixel = 0
+ffToggleBtn.Text = "OFF"
+ffToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ffToggleBtn.TextSize = 11
+ffToggleBtn.Font = Enum.Font.GothamBold
+ffToggleBtn.AutoButtonColor = false
+ffToggleBtn.ZIndex = 24
+ffToggleBtn.Parent = ffCard
+
+local ffToggleCorner = Instance.new("UICorner")
+ffToggleCorner.CornerRadius = UDim.new(0, 6)
+ffToggleCorner.Parent = ffToggleBtn
+
+local ffApplyBtn = Instance.new("TextButton")
+ffApplyBtn.Size = UDim2.new(1, -24, 0, 32)
+ffApplyBtn.Position = UDim2.new(0, 12, 0, 60)
+ffApplyBtn.BackgroundColor3 = COLOR_GRIS
+ffApplyBtn.BorderSizePixel = 0
+ffApplyBtn.Text = "Apply Fast Flags"
+ffApplyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ffApplyBtn.TextSize = 12
+ffApplyBtn.Font = Enum.Font.GothamBold
+ffApplyBtn.AutoButtonColor = false
+ffApplyBtn.ZIndex = 24
+ffApplyBtn.Parent = ffCard
+
+local ffApplyCorner = Instance.new("UICorner")
+ffApplyCorner.CornerRadius = UDim.new(0, 6)
+ffApplyCorner.Parent = ffApplyBtn
+
+local ffResetBtn = Instance.new("TextButton")
+ffResetBtn.Size = UDim2.new(1, -24, 0, 28)
+ffResetBtn.Position = UDim2.new(0, 12, 0, 96)
+ffResetBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+ffResetBtn.BorderSizePixel = 0
+ffResetBtn.Text = "Reset Fast Flags"
+ffResetBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
+ffResetBtn.TextSize = 11
+ffResetBtn.Font = Enum.Font.GothamBold
+ffResetBtn.AutoButtonColor = false
+ffResetBtn.ZIndex = 24
+ffResetBtn.Parent = ffCard
+
+local ffResetCorner = Instance.new("UICorner")
+ffResetCorner.CornerRadius = UDim.new(0, 6)
+ffResetCorner.Parent = ffResetBtn
+
+local function refreshFFToggle()
+    if FastFlagsActivos then
+        ffToggleBtn.Text = "ON"
+        ffToggleBtn.BackgroundColor3 = Color3.fromRGB(70, 180, 90)
+    else
+        ffToggleBtn.Text = "OFF"
+        ffToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    end
+end
+
+ffToggleBtn.MouseButton1Click:Connect(function()
+    FastFlagsActivos = not FastFlagsActivos
+    refreshFFToggle()
+    if FastFlagsActivos then
+        aplicarFastFlags()
+        showNotif("AHK", "Fast Flags enabled")
+    else
+        quitarFastFlags()
+        showNotif("AHK", "Fast Flags disabled")
+    end
+end)
+
+ffApplyBtn.MouseButton1Click:Connect(function()
+    FastFlagsActivos = true
+    refreshFFToggle()
+    aplicarFastFlags()
+    showNotif("AHK", "Fast Flags applied successfully")
+end)
+
+ffResetBtn.MouseButton1Click:Connect(function()
+    FastFlagsActivos = false
+    refreshFFToggle()
+    quitarFastFlags()
+    showNotif("AHK", "Fast Flags reset to default")
+end)
+
+refreshFFToggle()
+
+-- SELECT TAB
 local function selectTab(tab)
     for t, _ in pairs(tabsData) do
         TweenService:Create(t, TweenInfo.new(0.15), {
             BackgroundColor3 = Color3.fromRGB(45, 45, 55),
-            BackgroundTransparency = 0.3,
-            TextColor3 = Color3.fromRGB(200, 200, 210)
+            BackgroundTransparency = 0.4,
+            TextColor3 = Color3.fromRGB(220, 220, 230)
         }):Play()
     end
     TweenService:Create(tab, TweenInfo.new(0.15), {
         BackgroundColor3 = COLOR_GRIS,
-        BackgroundTransparency = 0,
+        BackgroundTransparency = 0.2,
         TextColor3 = Color3.fromRGB(255, 255, 255)
     }):Play()
 
     centerTitle.Text = tabsData[tab].titulo
-    centerTextLabel.Text = tabsData[tab].contenido
+
+    if tab == tabMisc then
+        centerTextLabel.Visible = false
+        miscContainer.Visible = true
+    else
+        centerTextLabel.Visible = true
+        miscContainer.Visible = false
+        centerTextLabel.Text = tabsData[tab].contenido
+    end
+
     activeTab = tab
 end
 
@@ -581,9 +783,7 @@ end
 
 selectTab(tabCombat)
 
--- ═══════════════════════════════════════════════════════════
 -- ABRIR / CERRAR UI
--- ═══════════════════════════════════════════════════════════
 local uiAbierta = false
 
 local function toggleUI()
@@ -592,7 +792,7 @@ local function toggleUI()
     if uiAbierta then
         mainPanel.Size = UDim2.new(0, 0, 0, 0)
         TweenService:Create(mainPanel, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 750, 0, 450)
+            Size = UDim2.new(0, PANEL_W, 0, PANEL_H)
         }):Play()
     end
 end
@@ -606,23 +806,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- ═══════════════════════════════════════════════════════════
--- CERRAR TODO EL SCRIPT
--- ═══════════════════════════════════════════════════════════
+-- CERRAR TODO
 closeAllBtn.MouseButton1Click:Connect(function()
-    if screenGui then
-        screenGui:Destroy()
-    end
+    if screenGui then screenGui:Destroy() end
     pcall(function()
-        if getgenv and getgenv().AHKPCThread then
-            task.cancel(getgenv().AHKPCThread)
+        if getgenv and getgenv().AHKThread then
+            task.cancel(getgenv().AHKThread)
         end
     end)
 end)
 
--- ═══════════════════════════════════════════════════════════
 -- STATS EN TIEMPO REAL
--- ═══════════════════════════════════════════════════════════
 local function getLevel()
     local lvl = 0
     pcall(function()
@@ -669,15 +863,11 @@ task.spawn(function()
 end)
 
 LocalPlayer.CharacterAdded:Connect(function()
-    if stats then
-        stats.muertes = stats.muertes + 1
-    end
+    if stats then stats.muertes = stats.muertes + 1 end
 end)
 
--- ═══════════════════════════════════════════════════════════
 -- NOTIFICACIONES INICIALES
--- ═══════════════════════════════════════════════════════════
 task.wait(1)
-showNotif("AHK for PC", "Presiona LEFT ALT para abrir la UI")
+showNotif("AHK", "Press LEFT ALT to open the UI")
 task.wait(1.5)
-showNotif("AHK for PC", "O haz click en el botón flotante 'S'")
+showNotif("AHK", "Or click the floating icon button")
