@@ -11,7 +11,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Config
 local NOMBRE_SCRIPT = "AHK"
-local IMAGEN_FONDO = "rbxassetid://99207554472358"
+local IMAGEN_FONDO = "rbxassetid://77642622960834"
 local ICONO_BOTON = "rbxassetid://105608688810397"
 local COLOR_GRIS = Color3.fromRGB(75, 78, 88)
 local COLOR_GRIS_HOVER = Color3.fromRGB(100, 104, 115)
@@ -36,7 +36,7 @@ screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = PlayerGui
 
--- BOTÓN FLOTANTE (con imagen)
+-- BOTÓN FLOTANTE
 local floatBtn = Instance.new("ImageButton")
 floatBtn.Name = "FloatButton"
 floatBtn.Size = UDim2.new(0, 45, 0, 45)
@@ -164,7 +164,7 @@ local function quitarFastFlags()
 end
 
 -- ═══════════════════════════════════════════════════════════
--- PANEL PRINCIPAL (15% más grande)
+-- PANEL PRINCIPAL
 -- ═══════════════════════════════════════════════════════════
 local PANEL_W = math.floor(750 * 1.15)
 local PANEL_H = math.floor(450 * 1.15)
@@ -191,22 +191,22 @@ mainStroke.Color = COLOR_GRIS
 mainStroke.Transparency = 0.2
 mainStroke.Parent = mainPanel
 
--- FONDO IMAGEN (visible al 85%)
+-- FONDO IMAGEN (85% visible)
 local bgImage = Instance.new("ImageLabel")
 bgImage.Name = "BackgroundImage"
 bgImage.Size = UDim2.new(1, 0, 1, 0)
 bgImage.BackgroundTransparency = 1
 bgImage.Image = IMAGEN_FONDO
 bgImage.ScaleType = Enum.ScaleType.Crop
-bgImage.ImageTransparency = 0.15  -- 15% transparente = 85% visible
+bgImage.ImageTransparency = 0.15
 bgImage.ZIndex = 16
 bgImage.Parent = mainPanel
 
--- Overlay oscuro LIGERO (para que se lean textos, pero la imagen se ve)
+-- Overlay oscuro LIGERO (20%)
 local darkOverlay = Instance.new("Frame")
 darkOverlay.Size = UDim2.new(1, 0, 1, 0)
 darkOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-darkOverlay.BackgroundTransparency = 0.65  -- Overlay al 35%
+darkOverlay.BackgroundTransparency = 0.80
 darkOverlay.BorderSizePixel = 0
 darkOverlay.ZIndex = 17
 darkOverlay.Parent = mainPanel
@@ -216,7 +216,7 @@ local header = Instance.new("Frame")
 header.Name = "Header"
 header.Size = UDim2.new(1, 0, 0, 50)
 header.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
-header.BackgroundTransparency = 0.4
+header.BackgroundTransparency = 0.5
 header.BorderSizePixel = 0
 header.ZIndex = 20
 header.Parent = mainPanel
@@ -278,8 +278,8 @@ contentContainer.Parent = mainPanel
 -- COLUMNA IZQUIERDA
 local leftColumn = Instance.new("Frame")
 leftColumn.Size = UDim2.new(0, 160, 1, 0)
-leftColumn.BackgroundColor3 = COLOR_GRIS_PANEL
-leftColumn.BackgroundTransparency = 0.5  -- más transparente para ver la imagen
+leftColumn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+leftColumn.BackgroundTransparency = 0.75
 leftColumn.BorderSizePixel = 0
 leftColumn.ZIndex = 20
 leftColumn.Parent = contentContainer
@@ -299,6 +299,11 @@ tabsTitle.Font = Enum.Font.GothamBold
 tabsTitle.TextXAlignment = Enum.TextXAlignment.Left
 tabsTitle.ZIndex = 21
 tabsTitle.Parent = leftColumn
+local tabsTitleStroke = Instance.new("UIStroke")
+tabsTitleStroke.Thickness = 1.5
+tabsTitleStroke.Color = Color3.fromRGB(0, 0, 0)
+tabsTitleStroke.Transparency = 0.3
+tabsTitleStroke.Parent = tabsTitle
 
 local tabsContainer = Instance.new("Frame")
 tabsContainer.Size = UDim2.new(1, -22, 1, -50)
@@ -319,7 +324,7 @@ local function createTab(nombre, layoutOrder)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 38)
     btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    btn.BackgroundTransparency = 0.4
+    btn.BackgroundTransparency = 0.5
     btn.BorderSizePixel = 0
     btn.Text = nombre
     btn.TextColor3 = Color3.fromRGB(220, 220, 230)
@@ -332,6 +337,11 @@ local function createTab(nombre, layoutOrder)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 6)
     c.Parent = btn
+    local s = Instance.new("UIStroke")
+    s.Thickness = 1.5
+    s.Color = Color3.fromRGB(0, 0, 0)
+    s.Transparency = 0.3
+    s.Parent = btn
     return btn
 end
 
@@ -339,8 +349,8 @@ end
 local centerColumn = Instance.new("Frame")
 centerColumn.Size = UDim2.new(0, 390, 1, 0)
 centerColumn.Position = UDim2.new(0, 172, 0, 0)
-centerColumn.BackgroundColor3 = COLOR_GRIS_PANEL
-centerColumn.BackgroundTransparency = 0.5
+centerColumn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+centerColumn.BackgroundTransparency = 0.75
 centerColumn.BorderSizePixel = 0
 centerColumn.ZIndex = 20
 centerColumn.Parent = contentContainer
@@ -360,6 +370,11 @@ centerTitle.Font = Enum.Font.GothamBold
 centerTitle.TextXAlignment = Enum.TextXAlignment.Left
 centerTitle.ZIndex = 21
 centerTitle.Parent = centerColumn
+local centerTitleStroke = Instance.new("UIStroke")
+centerTitleStroke.Thickness = 1.5
+centerTitleStroke.Color = Color3.fromRGB(0, 0, 0)
+centerTitleStroke.Transparency = 0.3
+centerTitleStroke.Parent = centerTitle
 
 local centerContent = Instance.new("Frame")
 centerContent.Size = UDim2.new(1, -22, 1, -50)
@@ -372,8 +387,8 @@ centerContent.Parent = centerColumn
 local rightColumn = Instance.new("Frame")
 rightColumn.Size = UDim2.new(0, 278, 1, 0)
 rightColumn.Position = UDim2.new(1, -278, 0, 0)
-rightColumn.BackgroundColor3 = COLOR_GRIS_PANEL
-rightColumn.BackgroundTransparency = 0.5
+rightColumn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+rightColumn.BackgroundTransparency = 0.75
 rightColumn.BorderSizePixel = 0
 rightColumn.ZIndex = 20
 rightColumn.Parent = contentContainer
@@ -393,12 +408,17 @@ rightTitle.Font = Enum.Font.GothamBold
 rightTitle.TextXAlignment = Enum.TextXAlignment.Left
 rightTitle.ZIndex = 21
 rightTitle.Parent = rightColumn
+local rightTitleStroke = Instance.new("UIStroke")
+rightTitleStroke.Thickness = 1.5
+rightTitleStroke.Color = Color3.fromRGB(0, 0, 0)
+rightTitleStroke.Transparency = 0.3
+rightTitleStroke.Parent = rightTitle
 
 local function createStatRow(parent, label, valorInicial, orden, altura)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, 0, 0, altura or 42)
     row.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    row.BackgroundTransparency = 0.5
+    row.BackgroundTransparency = 0.6
     row.BorderSizePixel = 0
     row.LayoutOrder = orden
     row.ZIndex = 21
@@ -406,6 +426,11 @@ local function createStatRow(parent, label, valorInicial, orden, altura)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 6)
     c.Parent = row
+    local s = Instance.new("UIStroke")
+    s.Thickness = 1.2
+    s.Color = Color3.fromRGB(0, 0, 0)
+    s.Transparency = 0.3
+    s.Parent = row
 
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -18, 0, 18)
@@ -456,9 +481,9 @@ local killsLabel = createStatRow(statsContainer, "Kills", "0", 7)
 
 -- USER INFO CARD
 local userCard = Instance.new("Frame")
-userCard.Size = UDim2.new(1, 0, 0, 90)
+userCard.Size = UDim2.new(1, 0, 0, 95)
 userCard.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-userCard.BackgroundTransparency = 0.5
+userCard.BackgroundTransparency = 0.6
 userCard.BorderSizePixel = 0
 userCard.LayoutOrder = 8
 userCard.ZIndex = 21
@@ -466,10 +491,15 @@ userCard.Parent = statsContainer
 local userCorner = Instance.new("UICorner")
 userCorner.CornerRadius = UDim.new(0, 6)
 userCorner.Parent = userCard
+local userStroke = Instance.new("UIStroke")
+userStroke.Thickness = 1.2
+userStroke.Color = Color3.fromRGB(0, 0, 0)
+userStroke.Transparency = 0.3
+userStroke.Parent = userCard
 
 local userAvatar = Instance.new("ImageLabel")
-userAvatar.Size = UDim2.new(0, 70, 0, 70)
-userAvatar.Position = UDim2.new(0, 10, 0, 10)
+userAvatar.Size = UDim2.new(0, 72, 0, 72)
+userAvatar.Position = UDim2.new(0, 11, 0, 11)
 userAvatar.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
 userAvatar.BorderSizePixel = 0
 userAvatar.ScaleType = Enum.ScaleType.Crop
@@ -485,35 +515,48 @@ avatarStroke.Color = COLOR_GRIS
 avatarStroke.Parent = userAvatar
 
 local userName = Instance.new("TextLabel")
-userName.Size = UDim2.new(1, -95, 0, 22)
-userName.Position = UDim2.new(0, 88, 0, 15)
+userName.Size = UDim2.new(1, -100, 0, 20)
+userName.Position = UDim2.new(0, 92, 0, 22)
 userName.BackgroundTransparency = 1
-userName.Text = LocalPlayer.Name
+userName.Text = LocalPlayer.DisplayName
 userName.TextColor3 = Color3.fromRGB(255, 255, 255)
-userName.TextSize = 14
+userName.TextSize = 13
 userName.Font = Enum.Font.GothamBold
 userName.TextXAlignment = Enum.TextXAlignment.Left
 userName.TextTruncate = Enum.TextTruncate.AtEnd
 userName.ZIndex = 22
 userName.Parent = userCard
 
-local userDisplay = Instance.new("TextLabel")
-userDisplay.Size = UDim2.new(1, -95, 0, 18)
-userDisplay.Position = UDim2.new(0, 88, 0, 38)
-userDisplay.BackgroundTransparency = 1
-userDisplay.Text = "@" .. LocalPlayer.DisplayName
-userDisplay.TextColor3 = Color3.fromRGB(200, 200, 210)
-userDisplay.TextSize = 11
-userDisplay.Font = Enum.Font.Gotham
-userDisplay.TextXAlignment = Enum.TextXAlignment.Left
-userDisplay.TextTruncate = Enum.TextTruncate.AtEnd
-userDisplay.ZIndex = 22
-userDisplay.Parent = userCard
+local userTag = Instance.new("TextLabel")
+userTag.Size = UDim2.new(1, -100, 0, 18)
+userTag.Position = UDim2.new(0, 92, 0, 44)
+userTag.BackgroundTransparency = 1
+userTag.Text = "@" .. LocalPlayer.Name
+userTag.TextColor3 = Color3.fromRGB(200, 200, 210)
+userTag.TextSize = 11
+userTag.Font = Enum.Font.Gotham
+userTag.TextXAlignment = Enum.TextXAlignment.Left
+userTag.TextTruncate = Enum.TextTruncate.AtEnd
+userTag.ZIndex = 22
+userTag.Parent = userCard
 
 task.spawn(function()
     pcall(function()
-        local content = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
-        if content then userAvatar.Image = content end
+        local content = Players:GetUserThumbnailAsync(
+            LocalPlayer.UserId,
+            Enum.ThumbnailType.AvatarBust,
+            Enum.ThumbnailSize.Size150x150
+        )
+        if content then
+            userAvatar.Image = content
+        else
+            local content2 = Players:GetUserThumbnailAsync(
+                LocalPlayer.UserId,
+                Enum.ThumbnailType.HeadShot,
+                Enum.ThumbnailSize.Size150x150
+            )
+            if content2 then userAvatar.Image = content2 end
+        end
     end)
 end)
 
@@ -612,7 +655,7 @@ centerTextLabel.TextWrapped = true
 centerTextLabel.ZIndex = 22
 centerTextLabel.Parent = centerContent
 
--- MISC CONTENT (Fast Flags)
+-- MISC CONTENT
 local miscContainer = Instance.new("Frame")
 miscContainer.Size = UDim2.new(1, -20, 1, -20)
 miscContainer.Position = UDim2.new(0, 10, 0, 10)
@@ -624,7 +667,7 @@ miscContainer.Parent = centerContent
 local ffCard = Instance.new("Frame")
 ffCard.Size = UDim2.new(1, 0, 0, 130)
 ffCard.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-ffCard.BackgroundTransparency = 0.5
+ffCard.BackgroundTransparency = 0.6
 ffCard.BorderSizePixel = 0
 ffCard.ZIndex = 23
 ffCard.Parent = miscContainer
@@ -632,6 +675,11 @@ ffCard.Parent = miscContainer
 local ffCorner = Instance.new("UICorner")
 ffCorner.CornerRadius = UDim.new(0, 8)
 ffCorner.Parent = ffCard
+local ffCardStroke = Instance.new("UIStroke")
+ffCardStroke.Thickness = 1.2
+ffCardStroke.Color = Color3.fromRGB(0, 0, 0)
+ffCardStroke.Transparency = 0.3
+ffCardStroke.Parent = ffCard
 
 local ffTitle = Instance.new("TextLabel")
 ffTitle.Size = UDim2.new(1, -20, 0, 24)
@@ -751,7 +799,7 @@ local function selectTab(tab)
     for t, _ in pairs(tabsData) do
         TweenService:Create(t, TweenInfo.new(0.15), {
             BackgroundColor3 = Color3.fromRGB(45, 45, 55),
-            BackgroundTransparency = 0.4,
+            BackgroundTransparency = 0.5,
             TextColor3 = Color3.fromRGB(220, 220, 230)
         }):Play()
     end
