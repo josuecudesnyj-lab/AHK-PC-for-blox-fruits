@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
--- SNIPER TRIS - Librería Propia
+-- AHK FOR PC - Librería Propia
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -10,7 +10,7 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Config
-local NOMBRE_SCRIPT = "Sniper Tris"
+local NOMBRE_SCRIPT = "AHK for PC"
 local IMAGEN_FONDO = "rbxassetid://99207554472358"
 local COLOR_GRIS = Color3.fromRGB(75, 78, 88)
 local COLOR_GRIS_HOVER = Color3.fromRGB(100, 104, 115)
@@ -25,15 +25,19 @@ local stats = {
 }
 local ultimoBounty = 0
 
+-- FPS / PING
+local currentFPS = 0
+local currentPing = 0
+
 -- Limpiar UI anterior
-local oldGui = PlayerGui:FindFirstChild("SniperTrisUI")
+local oldGui = PlayerGui:FindFirstChild("AHKPCUI")
 if oldGui then oldGui:Destroy() end
 
 -- ═══════════════════════════════════════════════════════════
 -- SCREEN GUI
 -- ═══════════════════════════════════════════════════════════
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SniperTrisUI"
+screenGui.Name = "AHKPCUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -77,6 +81,69 @@ floatBtn.MouseLeave:Connect(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════
+-- OVERLAY FPS / PING (Arriba a la derecha)
+-- ═══════════════════════════════════════════════════════════
+local overlayFPS = Instance.new("Frame")
+overlayFPS.Name = "FPSPingOverlay"
+overlayFPS.Size = UDim2.new(0, 160, 0, 26)
+overlayFPS.Position = UDim2.new(1, -170, 0, 10)
+overlayFPS.BackgroundColor3 = COLOR_GRIS_OSCURO
+overlayFPS.BackgroundTransparency = 0.2
+overlayFPS.BorderSizePixel = 0
+overlayFPS.ZIndex = 25
+overlayFPS.Parent = screenGui
+
+local overlayCorner = Instance.new("UICorner")
+overlayCorner.CornerRadius = UDim.new(0, 8)
+overlayCorner.Parent = overlayFPS
+
+local overlayStroke = Instance.new("UIStroke")
+overlayStroke.Thickness = 1.2
+overlayStroke.Color = COLOR_GRIS
+overlayStroke.Transparency = 0.3
+overlayStroke.Parent = overlayFPS
+
+local overlayText = Instance.new("TextLabel")
+overlayText.Name = "OverlayText"
+overlayText.Size = UDim2.new(1, 0, 1, 0)
+overlayText.BackgroundTransparency = 1
+overlayText.Text = "FPS: 0 | Ping: 0ms"
+overlayText.TextColor3 = Color3.fromRGB(255, 255, 255)
+overlayText.TextSize = 12
+overlayText.Font = Enum.Font.GothamBold
+overlayText.ZIndex = 26
+overlayText.Parent = overlayFPS
+
+-- ═══════════════════════════════════════════════════════════
+-- LOOP FPS / PING (igual que Sacred AHK)
+-- ═══════════════════════════════════════════════════════════
+local frameCount = 0
+local lastTime = tick()
+
+RunService.RenderStepped:Connect(function()
+    frameCount = frameCount + 1
+end)
+
+task.spawn(function()
+    while screenGui and screenGui.Parent do
+        task.wait(1)
+        local now = tick()
+        local elapsed = now - lastTime
+        if elapsed > 0 then
+            currentFPS = math.floor(frameCount / elapsed)
+        end
+        frameCount = 0
+        lastTime = now
+
+        pcall(function()
+            currentPing = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+        end)
+
+        overlayText.Text = "FPS: " .. currentFPS .. " | Ping: " .. currentPing .. "ms"
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════
 -- PANEL PRINCIPAL
 -- ═══════════════════════════════════════════════════════════
 local mainPanel = Instance.new("Frame")
@@ -101,7 +168,6 @@ mainStroke.Color = COLOR_GRIS
 mainStroke.Transparency = 0.2
 mainStroke.Parent = mainPanel
 
--- Imagen de fondo
 local bgImage = Instance.new("ImageLabel")
 bgImage.Name = "BackgroundImage"
 bgImage.Size = UDim2.new(1, 0, 1, 0)
@@ -120,7 +186,7 @@ darkOverlay.ZIndex = 17
 darkOverlay.Parent = mainPanel
 
 -- ═══════════════════════════════════════════════════════════
--- HEADER (título + X)
+-- HEADER
 -- ═══════════════════════════════════════════════════════════
 local header = Instance.new("Frame")
 header.Name = "Header"
@@ -140,7 +206,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(0, 300, 0, 45)
 titleLabel.Position = UDim2.new(0, 20, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "SNIPER TRIS"
+titleLabel.Text = "AHK FOR PC"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 18
 titleLabel.Font = Enum.Font.GothamBold
@@ -185,7 +251,7 @@ closeAllBtn.MouseLeave:Connect(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════
--- CONTENEDOR PRINCIPAL (3 columnas)
+-- CONTENEDOR PRINCIPAL
 -- ═══════════════════════════════════════════════════════════
 local contentContainer = Instance.new("Frame")
 contentContainer.Name = "ContentContainer"
@@ -195,7 +261,7 @@ contentContainer.BackgroundTransparency = 1
 contentContainer.ZIndex = 20
 contentContainer.Parent = mainPanel
 
--- ═══ COLUMNA IZQUIERDA (TABS) ═══
+-- COLUMNA IZQUIERDA (TABS)
 local leftColumn = Instance.new("Frame")
 leftColumn.Name = "LeftColumn"
 leftColumn.Size = UDim2.new(0, 140, 1, 0)
@@ -235,7 +301,6 @@ tabsLayout.Padding = UDim.new(0, 6)
 tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabsLayout.Parent = tabsContainer
 
--- Función para crear tabs
 local tabsData = {}
 local activeTab = nil
 
@@ -260,7 +325,7 @@ local function createTab(nombre, layoutOrder)
     return btn
 end
 
--- ═══ COLUMNA CENTRAL (CONTENIDO) ═══
+-- COLUMNA CENTRAL (CONTENIDO)
 local centerColumn = Instance.new("Frame")
 centerColumn.Name = "CenterColumn"
 centerColumn.Size = UDim2.new(0, 340, 1, 0)
@@ -296,7 +361,7 @@ centerContent.BackgroundTransparency = 1
 centerContent.ZIndex = 21
 centerContent.Parent = centerColumn
 
--- ═══ COLUMNA DERECHA (STATS) ═══
+-- COLUMNA DERECHA (STATS)
 local rightColumn = Instance.new("Frame")
 rightColumn.Name = "RightColumn"
 rightColumn.Size = UDim2.new(0, 240, 1, 0)
@@ -323,7 +388,6 @@ rightTitle.TextXAlignment = Enum.TextXAlignment.Left
 rightTitle.ZIndex = 21
 rightTitle.Parent = rightColumn
 
--- Función para crear filas de stats
 local function createStatRow(parent, label, valorInicial, orden)
     local row = Instance.new("Frame")
     row.Name = label .. "Row"
@@ -382,12 +446,13 @@ statsLayout.Parent = statsContainer
 local levelLabel = createStatRow(statsContainer, "Nivel", "0", 1)
 local bountyLabel = createStatRow(statsContainer, "Bounty", "0", 2)
 local conexionLabel = createStatRow(statsContainer, "Conexión", "0 ms", 3)
-local bountyGanadoLabel = createStatRow(statsContainer, "Bounty Ganado", "0", 4)
-local muertesLabel = createStatRow(statsContainer, "Muertes", "0", 5)
-local killsLabel = createStatRow(statsContainer, "Kills", "0", 6)
+local fpsLabel = createStatRow(statsContainer, "FPS", "0", 4)
+local bountyGanadoLabel = createStatRow(statsContainer, "Bounty Ganado", "0", 5)
+local muertesLabel = createStatRow(statsContainer, "Muertes", "0", 6)
+local killsLabel = createStatRow(statsContainer, "Kills", "0", 7)
 
 -- ═══════════════════════════════════════════════════════════
--- NOTIFICACIONES (abajo derecha)
+-- NOTIFICACIONES
 -- ═══════════════════════════════════════════════════════════
 local notifContainer = Instance.new("Frame")
 notifContainer.Name = "NotifContainer"
@@ -460,7 +525,7 @@ local function showNotif(titulo, texto)
 end
 
 -- ═══════════════════════════════════════════════════════════
--- LÓGICA: TABS
+-- TABS
 -- ═══════════════════════════════════════════════════════════
 local tabCombat = createTab("Combat", 1)
 local tabMovement = createTab("Movement", 2)
@@ -517,7 +582,7 @@ end
 selectTab(tabCombat)
 
 -- ═══════════════════════════════════════════════════════════
--- LÓGICA: ABRIR / CERRAR UI
+-- ABRIR / CERRAR UI
 -- ═══════════════════════════════════════════════════════════
 local uiAbierta = false
 
@@ -548,16 +613,15 @@ closeAllBtn.MouseButton1Click:Connect(function()
     if screenGui then
         screenGui:Destroy()
     end
-    -- Intenta matar el hilo si el executor lo soporta
     pcall(function()
-        if getgenv and getgenv().SniperTrisThread then
-            task.cancel(getgenv().SniperTrisThread)
+        if getgenv and getgenv().AHKPCThread then
+            task.cancel(getgenv().AHKPCThread)
         end
     end)
 end)
 
 -- ═══════════════════════════════════════════════════════════
--- LÓGICA: STATS EN TIEMPO REAL
+-- STATS EN TIEMPO REAL
 -- ═══════════════════════════════════════════════════════════
 local function getLevel()
     local lvl = 0
@@ -583,15 +647,6 @@ local function getBounty()
     return bounty
 end
 
-local function getPing()
-    local ping = 0
-    pcall(function()
-        ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
-    end)
-    return ping
-end
-
--- Loop que actualiza stats cada 0.5s
 task.spawn(function()
     while screenGui and screenGui.Parent do
         task.wait(0.5)
@@ -599,7 +654,8 @@ task.spawn(function()
             levelLabel.Text = tostring(getLevel())
             local bountyActual = getBounty()
             bountyLabel.Text = tostring(bountyActual)
-            conexionLabel.Text = tostring(getPing()) .. " ms"
+            conexionLabel.Text = tostring(currentPing) .. " ms"
+            fpsLabel.Text = tostring(currentFPS)
             bountyGanadoLabel.Text = tostring(stats.bountyGanado)
             muertesLabel.Text = tostring(stats.muertes)
             killsLabel.Text = tostring(stats.kills)
@@ -612,7 +668,6 @@ task.spawn(function()
     end
 end)
 
--- Detectar muerte / kill
 LocalPlayer.CharacterAdded:Connect(function()
     if stats then
         stats.muertes = stats.muertes + 1
@@ -623,6 +678,6 @@ end)
 -- NOTIFICACIONES INICIALES
 -- ═══════════════════════════════════════════════════════════
 task.wait(1)
-showNotif("Sniper Tris", "Presiona LEFT ALT para abrir la UI")
+showNotif("AHK for PC", "Presiona LEFT ALT para abrir la UI")
 task.wait(1.5)
-showNotif("Sniper Tris", "O haz click en el botón flotante 'S'")
+showNotif("AHK for PC", "O haz click en el botón flotante 'S'")
