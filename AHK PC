@@ -117,14 +117,10 @@ task.spawn(function()
         task.wait(1)
         local now = tick()
         local elapsed = now - lastTime
-        if elapsed > 0 then
-            currentFPS = math.floor(frameCount / elapsed)
-        end
+        if elapsed > 0 then currentFPS = math.floor(frameCount / elapsed) end
         frameCount = 0
         lastTime = now
-        pcall(function()
-            currentPing = math.floor(LocalPlayer:GetNetworkPing() * 1000)
-        end)
+        pcall(function() currentPing = math.floor(LocalPlayer:GetNetworkPing() * 1000) end)
         overlayText.Text = "FPS: " .. currentFPS .. " | Ping: " .. currentPing .. "ms"
     end
 end)
@@ -150,9 +146,7 @@ local FastFlagsList = {
 }
 
 local function setFF(name, value)
-    pcall(function()
-        if setfflag then setfflag(name, tostring(value)) end
-    end)
+    pcall(function() if setfflag then setfflag(name, tostring(value)) end end)
 end
 
 local function aplicarFastFlags()
@@ -171,281 +165,8 @@ local function quitarFastFlags()
 end
 
 -- ═══════════════════════════════════════════════════════════
--- FUNCIONES DEL JUEGO (ocultas, sin UI)
+-- PANEL PRINCIPAL
 -- ═══════════════════════════════════════════════════════════
-
--- Variables de estado
-local _G_SilentAimSkill = false
-local _G_SilentAimTargetPlayers = false
-local _G_SilentAimTargetMobs = false
-local _G_SilentAimTeamCheck = true
-local _G_DragonGunM1 = false
-local _G_AttackMobs = true
-local _G_AttackPlayers = true
-local _G_AutoKen = false
-local _G_JumpActive = false
-local _G_SanguineActive = false
-local currentSilentAimTarget = nil
-
--- Referencias remotas
-local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-local commE = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommE")
-local Net = ReplicatedStorage:FindFirstChild("Modules") and ReplicatedStorage.Modules:FindFirstChild("Net")
-
--- ─── SILENT AIM ───
-local function IsAlly(p)
-    local main = LocalPlayer.PlayerGui:FindFirstChild("Main")
-    local frame = main and main:FindFirstChild("Allies") and main.Allies:FindFirstChild("Container") and main.Allies.Container:FindFirstChild("Allies") and main.Allies.Container.Allies:FindFirstChild("ScrollingFrame") and main.Allies.Container.Allies.ScrollingFrame:FindFirstChild("Frame")
-    if not frame then return false end
-    return frame:FindFirstChild(p.Name) ~= nil
-end
-
-local function IsEnemy(p)
-    if not p or p == LocalPlayer then return false end
-    if IsAlly(p) then return false end
-    if LocalPlayer.Team and p.Team and LocalPlayer.Team.Name == "Marines" and p.Team.Name == "Marines" then return false end
-    return true
-end
-
-local function GetClosestTarget()
-    local myChar = LocalPlayer.Character
-    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    if not myHRP then return nil end
-    local closest, shortest = nil, 2500
-    local function checkNearest(character)
-        if not character then return end
-        local p = Players:GetPlayerFromCharacter(character)
-        if p then
-            if p == LocalPlayer then return end
-            if not IsEnemy(p) then return end
-        end
-        local hum = character:FindFirstChildOfClass("Humanoid")
-        if not hum or hum.Health <= 0 then return end
-        local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
-        if not part then return end
-        local d = (part.Position - myHRP.Position).Magnitude
-        if d < shortest then shortest = d; closest = part end
-    end
-    if _G_SilentAimTargetPlayers then
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer then checkNearest(p.Character) end
-        end
-    end
-    if _G_SilentAimTargetMobs then
-        local enemies = workspace:FindFirstChild("Enemies")
-        if enemies then for _, e in ipairs(enemies:GetChildren()) do checkNearest(e) end end
-    end
-    return closest
-end
-
-local MouseModuleInstance = ReplicatedStorage:FindFirstChild("Mouse")
-local MouseModule = nil
-if MouseModuleInstance then pcall(function() MouseModule = require(MouseModuleInstance) end) end
-if MouseModule and typeof(MouseModule) == "table" then
-    pcall(function()
-        local realStore = { Hit = rawget(MouseModule, "Hit"), Target = rawget(MouseModule, "Target") }
-        local mmt = getrawmetatable(MouseModule)
-        if mmt then setreadonly(mmt, false) else mmt = {}; setmetatable(MouseModule, mmt) end
-        rawset(MouseModule, "Hit", nil)
-        rawset(MouseModule, "Target", nil)
-        mmt.__index = function(self, key)
-            if key == "Hit" then
-                if _G_SilentAimSkill and currentSilentAimTarget then return CFrame.new(currentSilentAimTarget.Position) end
-                return realStore.Hit
-            elseif key == "Target" then
-                if _G_SilentAimSkill and currentSilentAimTarget then return currentSilentAimTarget end
-                return realStore.Target
-            end
-            return nil
-        end
-        mmt.__newindex = function(self, key, value)
-            if key == "Hit" or key == "Target" then realStore[key] = value else rawset(self, key, value) end
-        end
-        setreadonly(mmt, true)
-    end)
-end
-
-RunService.RenderStepped:Connect(function()
-    if _G_SilentAimSkill then currentSilentAimTarget = GetClosestTarget() else currentSilentAimTarget = nil end
-end)
-
--- ─── M1 GUN (DRAGON GUN) ───
-local DragonModules = ReplicatedStorage:WaitForChild("Modules")
-local DragonNet = DragonModules:WaitForChild("Net")
-local ShootGunEvent = DragonNet:WaitForChild("RE/ShootGunEvent")
-local Validator2 = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
-local getupval = debug.getupvalue or getupvalue
-local setupval = debug.setupvalue or setupvalue
-local getupvals = debug.getupvalues or getupvalues
-local ShootFunction
-local V_Idx = { v26 = 12, v22 = 13, v25 = 14, v21 = 15, v23 = 16, v24 = 17, v27 = 18 }
-
-local function InitDragonGun()
-    local success, result = pcall(require, ReplicatedStorage:WaitForChild("Controllers"):WaitForChild("CombatController"))
-    if success and type(result) == "table" and result.Attack then ShootFunction = getupval(result.Attack, 9) end
-end
-
-local function GetNextValidator()
-    if not ShootFunction then InitDragonGun() end
-    if not ShootFunction then return 0, 0 end
-    local upvals = getupvals(ShootFunction)
-    if not upvals then return 0, 0 end
-    if upvals[V_Idx.v21] ~= 727595 then
-        for i, v in pairs(upvals) do
-            if v == 727595 then
-                local offset = i - 15
-                V_Idx.v21 = i; V_Idx.v22 = 13 + offset; V_Idx.v23 = 16 + offset
-                V_Idx.v24 = 17 + offset; V_Idx.v26 = 12 + offset; V_Idx.v25 = 14 + offset
-                V_Idx.v27 = 18 + offset
-                break
-            end
-        end
-    end
-    local v1 = getupval(ShootFunction, V_Idx.v21)
-    local v2 = getupval(ShootFunction, V_Idx.v22)
-    local v3 = getupval(ShootFunction, V_Idx.v23)
-    local v4 = getupval(ShootFunction, V_Idx.v24)
-    local v5 = getupval(ShootFunction, V_Idx.v25)
-    local v6 = getupval(ShootFunction, V_Idx.v26)
-    local v7 = getupval(ShootFunction, V_Idx.v27)
-    if not (v1 and v2 and v3 and v4 and v5 and v6 and v7) then return 0, 0 end
-    local v8 = v6 * v2
-    local v9 = (v5 * v2 + v6 * v1) % v3
-    v9 = (v9 * v3 + v8) % v4
-    v5 = math.floor(v9 / v3)
-    v6 = v9 - v5 * v3
-    v7 = v7 + 1
-    setupval(ShootFunction, V_Idx.v25, v5)
-    setupval(ShootFunction, V_Idx.v26, v6)
-    setupval(ShootFunction, V_Idx.v27, v7)
-    return math.floor(v9 / v4 * 16777215), v7
-end
-
-local function GetClosestDragonTarget()
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-    local closest, dist = nil, math.huge
-    local myPos = root.Position
-    if _G_AttackMobs then
-        local enemies = workspace:FindFirstChild("Enemies")
-        if enemies then
-            for _, enemy in pairs(enemies:GetChildren()) do
-                local hum = enemy:FindFirstChildOfClass("Humanoid")
-                local r = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Head")
-                if hum and hum.Health > 0 and r then
-                    local d = (r.Position - myPos).Magnitude
-                    if d < dist then dist = d; closest = r end
-                end
-            end
-        end
-    end
-    if _G_AttackPlayers then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then
-                local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                local r = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Head")
-                if hum and hum.Health > 0 and r then
-                    local d = (r.Position - myPos).Magnitude
-                    if d < dist then dist = d; closest = r end
-                end
-            end
-        end
-    end
-    return closest
-end
-
-local function FireGunAt(targetPart)
-    if not targetPart then return end
-    local char = LocalPlayer.Character
-    if not char then return end
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool then return end
-    local code, count = GetNextValidator()
-    if code ~= 0 then pcall(function() Validator2:FireServer(code, count) end) end
-    pcall(function()
-        tool:SetAttribute("LocalOverheat", 0)
-        tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-    end)
-    pcall(function() ShootGunEvent:FireServer(targetPart.Position, {targetPart}) end)
-    local registerHit = Net and Net:FindFirstChild("RE/RegisterHit")
-    if registerHit then
-        local hum = targetPart.Parent and targetPart.Parent:FindFirstChildOfClass("Humanoid")
-        local hrp = targetPart.Parent and targetPart.Parent:FindFirstChild("HumanoidRootPart")
-        if hum and hrp then
-            pcall(function() registerHit:FireServer(targetPart, {{targetPart.Parent, hrp}, targetPart.Parent}, nil, "078da5141") end)
-        end
-    end
-    pcall(function() tool:Activate() end)
-end
-
-task.spawn(function()
-    while task.wait(0.08) do
-        if _G_DragonGunM1 then
-            pcall(function()
-                local char = LocalPlayer.Character
-                if not char then return end
-                local tool = char:FindFirstChildOfClass("Tool")
-                if not tool or tool.ToolTip ~= "Gun" then return end
-                local targetPart = GetClosestDragonTarget()
-                if not targetPart then return end
-                FireGunAt(targetPart)
-            end)
-        end
-    end
-end)
-
--- ─── AUTO KEN ───
-task.spawn(function()
-    while task.wait(0.5) do
-        if _G_AutoKen then pcall(function() commE:FireServer("Ken", true) end) end
-    end
-end)
-
--- ─── JUMP (tecla G) ───
-local function executeJump()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-    pcall(function()
-        for _, v in pairs(hrp:GetChildren()) do
-            if v:IsA("BodyVelocity") and v.Name == "AHKJump" then v:Destroy() end
-        end
-        local bv = Instance.new("BodyVelocity")
-        bv.Name = "AHKJump"
-        bv.MaxForce = Vector3.new(0, 50000, 0)
-        bv.Velocity = Vector3.new(0, 1000, 0)
-        bv.Parent = hrp
-        hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        task.delay(0.05, function() pcall(function() if hum and hum.Parent then hum:ChangeState(Enum.HumanoidStateType.Freefall) end end) end)
-        task.delay(0.15, function() if bv then bv:Destroy() end end)
-    end)
-end
-
--- ─── SANGUINE MANUAL ───
-local function executeSanguineBoost()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
-    if not hrp or not hum then return end
-    local dir = camera.CFrame.LookVector
-    hum.PlatformStand = true
-    local att = Instance.new("Attachment", hrp)
-    local lv = Instance.new("LinearVelocity", hrp)
-    lv.MaxForce = 9999999
-    lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-    lv.VectorVelocity = dir * 500
-    lv.Attachment0 = att
-    task.delay(0.30, function()
-        if lv then lv:Destroy() end
-        if att then att:Destroy() end
-        if hum then hum.PlatformStand = false end
-    end)
-end
-
--- ─── PANEL PRINCIPAL ───
 local PANEL_W = math.floor(750 * 1.15)
 local PANEL_H = math.floor(450 * 1.15)
 
@@ -489,6 +210,7 @@ darkOverlay.BorderSizePixel = 0
 darkOverlay.ZIndex = 17
 darkOverlay.Parent = mainPanel
 
+-- HEADER
 local header = Instance.new("Frame")
 header.Name = "Header"
 header.Size = UDim2.new(1, 0, 0, 50)
@@ -546,6 +268,7 @@ closeAllBtn.MouseLeave:Connect(function()
     TweenService:Create(closeAllBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(40, 40, 48) }):Play()
 end)
 
+-- CONTENEDOR
 local contentContainer = Instance.new("Frame")
 contentContainer.Size = UDim2.new(1, -22, 1, -68)
 contentContainer.Position = UDim2.new(0, 11, 0, 56)
@@ -836,26 +559,14 @@ applyFont(userTag, Enum.FontWeight.Regular)
 
 task.spawn(function()
     pcall(function()
-        local content = Players:GetUserThumbnailAsync(
-            LocalPlayer.UserId,
-            Enum.ThumbnailType.AvatarBust,
-            Enum.ThumbnailSize.Size150x150
-        )
-        if content then
-            userAvatar.Image = content
-        else
-            local content2 = Players:GetUserThumbnailAsync(
-                LocalPlayer.UserId,
-                Enum.ThumbnailType.HeadShot,
-                Enum.ThumbnailSize.Size150x150
-            )
-            if content2 then userAvatar.Image = content2 end
-        end
+        local content = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.AvatarBust, Enum.ThumbnailSize.Size150x150)
+        if content then userAvatar.Image = content end
     end)
 end)
 
 -- NOTIFICACIONES
 local notifContainer = Instance.new("Frame")
+notifContainer.Name = "NotifContainer"
 notifContainer.Size = UDim2.new(0, 300, 1, 0)
 notifContainer.Position = UDim2.new(1, -320, 0, 0)
 notifContainer.BackgroundTransparency = 1
@@ -865,7 +576,7 @@ notifContainer.Parent = screenGui
 local notifLayout = Instance.new("UIListLayout")
 notifLayout.Padding = UDim.new(0, 8)
 notifLayout.SortOrder = Enum.SortOrder.LayoutOrder
-notifLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+notifLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 notifLayout.Parent = notifContainer
 
 local function showNotif(titulo, texto)
@@ -926,26 +637,28 @@ end
 
 -- TABS
 local tabCombat = createTab("Combat", 1)
-local tabMovement = createTab("Movement", 2)
-local tabVisuals = createTab("Visuals", 3)
-local tabMisc = createTab("Misc", 4)
+local tabGlitch = createTab("Glitch", 2)
+local tabSoru = createTab("Soru", 3)
+local tabAppearance = createTab("Appearance", 4)
+local tabMisc = createTab("Misc", 5)
 
 tabsData = {
-    [tabCombat] = {titulo = "COMBAT", contenido = ""},
-    [tabMovement] = {titulo = "MOVEMENT", contenido = ""},
-    [tabVisuals] = {titulo = "VISUALS", contenido = ""},
-    [tabMisc] = {titulo = "MISC", contenido = ""}
+    [tabCombat] = {titulo = "COMBAT"},
+    [tabGlitch] = {titulo = "GLITCH"},
+    [tabSoru] = {titulo = "SORU"},
+    [tabAppearance] = {titulo = "APPEARANCE"},
+    [tabMisc] = {titulo = "MISC"}
 }
 
--- Función para crear botones con toggle visual
+-- HELPER TOGGLE
 local toggleRefreshes = {}
-local function createToggleBtn(parent, labelText, getter, setter, yPos)
+local function createToggleBtn(parent, labelText, getter, setter, layoutOrder)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -12, 0, 30)
-    frame.Position = UDim2.new(0, 6, 0, yPos)
     frame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     frame.BackgroundTransparency = 0.5
     frame.BorderSizePixel = 0
+    frame.LayoutOrder = layoutOrder
     frame.ZIndex = 22
     frame.Parent = parent
     local c = Instance.new("UICorner")
@@ -1007,15 +720,14 @@ local function createToggleBtn(parent, labelText, getter, setter, yPos)
 end
 
 -- ═══════════════════════════════════════════════════════════
--- COMBAT TAB
+-- COMBAT
 -- ═══════════════════════════════════════════════════════════
 local combatScroll = Instance.new("ScrollingFrame")
 combatScroll.Size = UDim2.new(1, 0, 1, 0)
-combatScroll.Position = UDim2.new(0, 0, 0, 0)
 combatScroll.BackgroundTransparency = 1
 combatScroll.BorderSizePixel = 0
 combatScroll.ScrollBarThickness = 3
-combatScroll.CanvasSize = UDim2.new(0, 0, 0, 300)
+combatScroll.CanvasSize = UDim2.new(0, 0, 0, 400)
 combatScroll.ZIndex = 22
 combatScroll.Parent = centerContent
 
@@ -1024,43 +736,21 @@ combatLayout.Padding = UDim.new(0, 6)
 combatLayout.SortOrder = Enum.SortOrder.LayoutOrder
 combatLayout.Parent = combatScroll
 
--- Target Players
-createToggleBtn(combatScroll, "Target Players", function() return _G_SilentAimTargetPlayers end, function(v) _G_SilentAimTargetPlayers = v end, 0)
--- Target NPCs
-createToggleBtn(combatScroll, "Target NPCs", function() return _G_SilentAimTargetMobs end, function(v) _G_SilentAimTargetMobs = v end, 36)
--- Team Check
-createToggleBtn(combatScroll, "Team Check", function() return _G_SilentAimTeamCheck end, function(v) _G_SilentAimTeamCheck = v end, 72)
--- Auto Ken
-createToggleBtn(combatScroll, "Auto Ken", function() return _G_AutoKen end, function(v) _G_AutoKen = v end, 108)
+createToggleBtn(combatScroll, "Silent Aim", function() return _G_SilentAimSkill end, function(v) _G_SilentAimSkill = v end, 1)
+createToggleBtn(combatScroll, "Target Players", function() return _G_SilentAimTargetPlayers end, function(v) _G_SilentAimTargetPlayers = v; SilentAimPlayersEnabled = v end, 2)
+createToggleBtn(combatScroll, "Target NPCs", function() return _G_SilentAimTargetMobs end, function(v) _G_SilentAimTargetMobs = v; SilentAimNPCsEnabled = v end, 3)
+createToggleBtn(combatScroll, "Fast Attack", function() return _G_GhostAttack end, function(v) _G_GhostAttack = v end, 4)
+createToggleBtn(combatScroll, "Auto Ken", function() return _G_AutoKen end, function(v) _G_AutoKen = v end, 5)
 
--- ═══════════════════════════════════════════════════════════
--- MOVEMENT TAB
--- ═══════════════════════════════════════════════════════════
-local movementScroll = Instance.new("ScrollingFrame")
-movementScroll.Size = UDim2.new(1, 0, 1, 0)
-movementScroll.Position = UDim2.new(0, 0, 0, 0)
-movementScroll.BackgroundTransparency = 1
-movementScroll.BorderSizePixel = 0
-movementScroll.ScrollBarThickness = 3
-movementScroll.CanvasSize = UDim2.new(0, 0, 0, 300)
-movementScroll.ZIndex = 22
-movementScroll.Parent = centerContent
-movementScroll.Visible = false
-
-local movementLayout = Instance.new("UIListLayout")
-movementLayout.Padding = UDim.new(0, 6)
-movementLayout.SortOrder = Enum.SortOrder.LayoutOrder
-movementLayout.Parent = movementScroll
-
--- Walk Speed
+-- WalkSpeed en Combat
 local wsFrame = Instance.new("Frame")
 wsFrame.Size = UDim2.new(1, -12, 0, 60)
 wsFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
 wsFrame.BackgroundTransparency = 0.5
 wsFrame.BorderSizePixel = 0
-wsFrame.LayoutOrder = 1
+wsFrame.LayoutOrder = 6
 wsFrame.ZIndex = 22
-wsFrame.Parent = movementScroll
+wsFrame.Parent = combatScroll
 local wsCorner = Instance.new("UICorner")
 wsCorner.CornerRadius = UDim.new(0, 6)
 wsCorner.Parent = wsFrame
@@ -1108,9 +798,7 @@ wsToggle.AutoButtonColor = false
 wsToggle.ZIndex = 23
 wsToggle.Parent = wsFrame
 applyFont(wsToggle, Enum.FontWeight.Bold)
-local wsTCorner = Instance.new("UICorner")
-wsTCorner.CornerRadius = UDim.new(0, 4)
-wsTCorner.Parent = wsToggle
+Instance.new("UICorner", wsToggle).CornerRadius = UDim.new(0, 4)
 
 local wsEnabled = false
 local wsValue_ = 16
@@ -1180,29 +868,15 @@ task.spawn(function()
     end
 end)
 
--- Infinite Jump
-createToggleBtn(movementScroll, "Infinite Jump", function() return _G_InfiniteJump end, function(v) _G_InfiniteJump = v end, 66)
-_G_InfiniteJump = false
-
-UserInputService.JumpRequest:Connect(function()
-    if _G_InfiniteJump then
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-        end
-    end
-end)
-
--- Dash
+-- Dash en Combat
 local dashFrame = Instance.new("Frame")
 dashFrame.Size = UDim2.new(1, -12, 0, 60)
 dashFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
 dashFrame.BackgroundTransparency = 0.5
 dashFrame.BorderSizePixel = 0
-dashFrame.LayoutOrder = 3
+dashFrame.LayoutOrder = 7
 dashFrame.ZIndex = 22
-dashFrame.Parent = movementScroll
+dashFrame.Parent = combatScroll
 local dCorner = Instance.new("UICorner")
 dCorner.CornerRadius = UDim.new(0, 6)
 dCorner.Parent = dashFrame
@@ -1320,45 +994,855 @@ task.spawn(function()
     end
 end)
 
--- ═══════════════════════════════════════════════════════════
--- VISUALS TAB
--- ═══════════════════════════════════════════════════════════
-local visualsScroll = Instance.new("ScrollingFrame")
-visualsScroll.Size = UDim2.new(1, 0, 1, 0)
-visualsScroll.Position = UDim2.new(0, 0, 0, 0)
-visualsScroll.BackgroundTransparency = 1
-visualsScroll.BorderSizePixel = 0
-visualsScroll.ScrollBarThickness = 3
-visualsScroll.CanvasSize = UDim2.new(0, 0, 0, 300)
-visualsScroll.ZIndex = 22
-visualsScroll.Parent = centerContent
-visualsScroll.Visible = false
+-- ─── LÓGICA SILENT AIM ───
+local currentSilentAimTarget = nil
+local maxRange = 2500
 
-local visualsLayout = Instance.new("UIListLayout")
-visualsLayout.Padding = UDim.new(0, 6)
-visualsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-visualsLayout.Parent = visualsScroll
+local function IsAlly(p)
+    local main = LocalPlayer.PlayerGui:FindFirstChild("Main")
+    local frame = main and main:FindFirstChild("Allies") and main.Allies:FindFirstChild("Container") and main.Allies.Container:FindFirstChild("Allies") and main.Allies.Container.Allies:FindFirstChild("ScrollingFrame") and main.Allies.Container.Allies.ScrollingFrame:FindFirstChild("Frame")
+    if not frame then return false end
+    return frame:FindFirstChild(p.Name) ~= nil
+end
 
-createToggleBtn(visualsScroll, "Full Bright", function() return _G_FullBright end, function(v)
-    _G_FullBright = v
-    if v then
-        game.Lighting.Brightness = 10
-        game.Lighting.ClockTime = 14
-        game.Lighting.FogEnd = 9e9
-        game.Lighting.GlobalShadows = false
-    else
-        game.Lighting.Brightness = 1
-        game.Lighting.GlobalShadows = true
+local function IsEnemy(p)
+    if not p or p == LocalPlayer then return false end
+    if IsAlly(p) then return false end
+    if LocalPlayer.Team and p.Team and LocalPlayer.Team.Name == "Marines" and p.Team.Name == "Marines" then return false end
+    return true
+end
+
+local function GetClosestTarget()
+    local myChar = LocalPlayer.Character
+    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+    local closest, shortest = nil, maxRange
+    local function checkNearest(character)
+        if not character then return end
+        local p = Players:GetPlayerFromCharacter(character)
+        if p then
+            if p == LocalPlayer then return end
+            if not IsEnemy(p) then return end
+        end
+        local hum = character:FindFirstChildOfClass("Humanoid")
+        if not hum or hum.Health <= 0 then return end
+        local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+        if not part then return end
+        local d = (part.Position - myHRP.Position).Magnitude
+        if d < shortest then shortest = d; closest = part end
     end
-end, 0)
-_G_FullBright = false
+    if _G_SilentAimTargetPlayers then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then checkNearest(p.Character) end
+        end
+    end
+    if _G_SilentAimTargetMobs then
+        local enemies = workspace:FindFirstChild("Enemies")
+        if enemies then for _, e in ipairs(enemies:GetChildren()) do checkNearest(e) end end
+    end
+    return closest
+end
+
+local MouseModuleInstance = ReplicatedStorage:FindFirstChild("Mouse")
+local MouseModule = nil
+if MouseModuleInstance then pcall(function() MouseModule = require(MouseModuleInstance) end) end
+if MouseModule and typeof(MouseModule) == "table" then
+    pcall(function()
+        local realStore = { Hit = rawget(MouseModule, "Hit"), Target = rawget(MouseModule, "Target") }
+        local mmt = getrawmetatable(MouseModule)
+        if mmt then setreadonly(mmt, false) else mmt = {}; setmetatable(MouseModule, mmt) end
+        rawset(MouseModule, "Hit", nil)
+        rawset(MouseModule, "Target", nil)
+        mmt.__index = function(self, key)
+            if key == "Hit" then
+                if _G_SilentAimSkill and currentSilentAimTarget then return CFrame.new(currentSilentAimTarget.Position) end
+                return realStore.Hit
+            elseif key == "Target" then
+                if _G_SilentAimSkill and currentSilentAimTarget then return currentSilentAimTarget end
+                return realStore.Target
+            end
+            return nil
+        end
+        mmt.__newindex = function(self, key, value)
+            if key == "Hit" or key == "Target" then realStore[key] = value else rawset(self, key, value) end
+        end
+        setreadonly(mmt, true)
+    end)
+end
+
+RunService.RenderStepped:Connect(function()
+    if _G_SilentAimSkill then currentSilentAimTarget = GetClosestTarget() else currentSilentAimTarget = nil end
+end)
+
+-- Auto Ken
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G_AutoKen then pcall(function() commE:FireServer("Ken", true) end) end
+    end
+end)
+
+-- Fast Attack
+task.spawn(function()
+    while task.wait(0.03) do
+        if _G_GhostAttack then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if not char then return end
+                local tool = char:FindFirstChildOfClass("Tool")
+                if not tool then return end
+                if string.find(string.lower(tool.Name), "portal") then return end
+                local registerAttack = Net and Net:FindFirstChild("RE/RegisterAttack")
+                if registerAttack then registerAttack:FireServer(0) end
+                local myRoot = char:FindFirstChild("HumanoidRootPart")
+                if not myRoot then return end
+                local closest, shortest = nil, 60
+                local enemies = workspace:FindFirstChild("Enemies")
+                if enemies then
+                    for _, enemy in pairs(enemies:GetChildren()) do
+                        local hum = enemy:FindFirstChildOfClass("Humanoid")
+                        if hum and hum.Health > 0 then
+                            local root = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Head")
+                            if root then
+                                local dist = (root.Position - myRoot.Position).Magnitude
+                                if dist < shortest then shortest = dist; closest = enemy end
+                            end
+                        end
+                    end
+                end
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character then
+                        local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                        local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Head")
+                        if hum and hum.Health > 0 and root then
+                            local isAlly = false
+                            if LocalPlayer.Team and p.Team and LocalPlayer.Team == p.Team then isAlly = true end
+                            pcall(function()
+                                local main = LocalPlayer.PlayerGui:FindFirstChild("Main")
+                                local frame = main and main:FindFirstChild("Allies") and main.Allies:FindFirstChild("Container") and main.Allies.Container:FindFirstChild("Allies") and main.Allies.Container.Allies:FindFirstChild("ScrollingFrame") and main.Allies.Container.Allies.ScrollingFrame:FindFirstChild("Frame")
+                                if frame and frame:FindFirstChild(p.Name) then isAlly = true end
+                            end)
+                            if not isAlly then
+                                local dist = (root.Position - myRoot.Position).Magnitude
+                                if dist < shortest then shortest = dist; closest = p.Character end
+                            end
+                        end
+                    end
+                end
+                if closest then
+                    local head = closest:FindFirstChild("Head") or closest:FindFirstChild("HumanoidRootPart")
+                    local hrp = closest:FindFirstChild("HumanoidRootPart")
+                    local registerHit = Net and Net:FindFirstChild("RE/RegisterHit")
+                    if head and hrp and registerHit then registerHit:FireServer(head, {{closest, hrp}, closest}, nil, "078da5141") end
+                end
+                tool:Activate()
+            end)
+        end
+    end
+end)
 
 -- ═══════════════════════════════════════════════════════════
--- MISC TAB (Fast Flags)
+-- GLITCH
+-- ═══════════════════════════════════════════════════════════
+local glitchScroll = Instance.new("ScrollingFrame")
+glitchScroll.Size = UDim2.new(1, 0, 1, 0)
+glitchScroll.BackgroundTransparency = 1
+glitchScroll.BorderSizePixel = 0
+glitchScroll.ScrollBarThickness = 3
+glitchScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
+glitchScroll.ZIndex = 22
+glitchScroll.Parent = centerContent
+glitchScroll.Visible = false
+
+local glitchLayout = Instance.new("UIListLayout")
+glitchLayout.Padding = UDim.new(0, 6)
+glitchLayout.SortOrder = Enum.SortOrder.LayoutOrder
+glitchLayout.Parent = glitchScroll
+
+-- Sanguine Manual (se ejecuta con Alt Izquierdo, no toggle)
+-- Jump (se ejecuta con G, no toggle)
+
+-- Sanguine Auto
+local BoostConfig = {
+    SanguineAuto = { Name = "Sanguine Auto", Color = Color3.fromRGB(180, 60, 255), Enabled = false, Visible = false, Power = 500, Duration = 0.30, MinCharge = 1.0, AnimIDs = {"14418367908"}, AnimName = "GhoulZCharge", SubWindow = nil, FloatGui = nil, FloatY = 0.65 },
+    DTalonAuto = { Name = "DTalon Auto", Color = Color3.fromRGB(255, 100, 50), Enabled = false, Visible = false, Power = 500, Duration = 0.30, MinCharge = 1.0, AnimIDs = {"18839089313"}, AnimName = "DTalon_ZCharge", SubWindow = nil, FloatGui = nil, FloatY = 0.75 },
+}
+
+local function doConfigBoost(cfg)
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+    local dir = camera.CFrame.LookVector
+    hum.PlatformStand = true
+    local att = Instance.new("Attachment", hrp)
+    local lv = Instance.new("LinearVelocity", hrp)
+    lv.MaxForce = 9999999
+    lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    lv.VectorVelocity = dir * cfg.Power
+    lv.Attachment0 = att
+    task.delay(cfg.Duration, function()
+        if lv then lv:Destroy() end
+        if att then att:Destroy() end
+        if hum then hum.PlatformStand = false end
+    end)
+end
+
+local boostConns = {}
+local function hookBoostAnim(key, cfg)
+    if boostConns[key] then boostConns[key]:Disconnect(); boostConns[key] = nil end
+    if boostConns[key.."_res"] then boostConns[key.."_res"]:Disconnect(); boostConns[key.."_res"] = nil end
+    local function attach(char)
+        local hum = char:WaitForChild("Humanoid", 5)
+        if not hum then return end
+        local conn = hum.AnimationPlayed:Connect(function(track)
+            if not cfg.Enabled then return end
+            local anim = track.Animation
+            local id = anim and tostring(anim.AnimationId):match("%d+")
+            local name = anim and anim.Name or ""
+            local match = false
+            for _, aid in ipairs(cfg.AnimIDs) do if id == aid then match = true; break end end
+            if cfg.AnimName ~= "" and name == cfg.AnimName then match = true end
+            if not match then return end
+            local start = tick()
+            track.Stopped:Connect(function()
+                if not cfg.Enabled then return end
+                if (tick() - start) >= cfg.MinCharge then task.spawn(function() doConfigBoost(cfg) end) end
+            end)
+        end)
+        boostConns[key] = conn
+    end
+    if LocalPlayer.Character then attach(LocalPlayer.Character) end
+    boostConns[key.."_res"] = LocalPlayer.CharacterAdded:Connect(attach)
+end
+
+local function unhookBoostAnim(key)
+    if boostConns[key] then boostConns[key]:Disconnect(); boostConns[key] = nil end
+    if boostConns[key.."_res"] then boostConns[key.."_res"]:Disconnect(); boostConns[key.."_res"] = nil end
+end
+
+-- createToggleWithGear adaptado para el AHK
+local function createToggleWithGear(parent, labelText, key, cfg, onGearClick, layoutOrder)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -12, 0, 30)
+    frame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    frame.BackgroundTransparency = 0.5
+    frame.BorderSizePixel = 0
+    frame.LayoutOrder = layoutOrder
+    frame.ZIndex = 22
+    frame.Parent = parent
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = frame
+    local s = Instance.new("UIStroke")
+    s.Thickness = 1.2
+    s.Color = Color3.fromRGB(0, 0, 0)
+    s.Transparency = 0.3
+    s.Parent = frame
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.55, 0, 1, 0)
+    lbl.Position = UDim2.new(0, 10, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = labelText
+    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    lbl.TextSize = 11
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 23
+    lbl.Parent = frame
+    applyFont(lbl, Enum.FontWeight.Bold)
+
+    local gear = Instance.new("TextButton")
+    gear.Size = UDim2.new(0, 22, 0, 22)
+    gear.Position = UDim2.new(1, -88, 0.5, -11)
+    gear.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    gear.Text = "o"
+    gear.TextColor3 = Color3.fromRGB(255, 255, 255)
+    gear.TextSize = 12
+    gear.Font = Enum.Font.GothamBold
+    gear.BorderSizePixel = 0
+    gear.ZIndex = 23
+    gear.Parent = frame
+    Instance.new("UICorner", gear).CornerRadius = UDim.new(0, 4)
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 50, 0, 22)
+    btn.Position = UDim2.new(1, -60, 0.5, -11)
+    btn.BackgroundColor3 = cfg.Visible and Color3.fromRGB(70, 180, 90) or Color3.fromRGB(50, 50, 60)
+    btn.Text = cfg.Visible and "ON" or "OFF"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 10
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.ZIndex = 23
+    btn.Parent = frame
+    applyFont(btn, Enum.FontWeight.Bold)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+
+    local function updateToggle()
+        if cfg.Visible then btn.BackgroundColor3 = Color3.fromRGB(70, 180, 90); btn.Text = "ON"
+        else btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60); btn.Text = "OFF" end
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        cfg.Visible = not cfg.Visible
+        updateToggle()
+        if cfg.Visible then
+            cfg.Enabled = true
+            hookBoostAnim(key, cfg)
+        else
+            cfg.Enabled = false
+            unhookBoostAnim(key)
+        end
+    end)
+
+    gear.MouseButton1Click:Connect(function()
+        if onGearClick then onGearClick() end
+    end)
+
+    updateToggle()
+    return btn, gear
+end
+
+local function createBoostSubWindow(key, cfg, parentGui)
+    local Sub = Instance.new("Frame")
+    Sub.Size = UDim2.new(0, 300, 0, 300)
+    Sub.Position = UDim2.new(0.5, -150, 0.5, -150)
+    Sub.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Sub.BorderSizePixel = 0
+    Sub.Visible = false
+    Sub.Active = true
+    Sub.Draggable = true
+    Sub.ZIndex = 50
+    Sub.Parent = parentGui
+    Instance.new("UICorner", Sub).CornerRadius = UDim.new(0, 12)
+    local ss = Instance.new("UIStroke", Sub); ss.Color = cfg.Color; ss.Thickness = 2
+    local H = Instance.new("Frame")
+    H.Size = UDim2.new(1, 0, 0, 35)
+    H.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    H.BorderSizePixel = 0
+    H.ZIndex = 50
+    H.Parent = Sub
+    Instance.new("UICorner", H).CornerRadius = UDim.new(0, 12)
+    local HT = Instance.new("TextLabel")
+    HT.Size = UDim2.new(1, -50, 1, 0)
+    HT.Position = UDim2.new(0, 12, 0, 0)
+    HT.BackgroundTransparency = 1
+    HT.Text = cfg.Name .. " - Config"
+    HT.TextColor3 = cfg.Color
+    HT.Font = Enum.Font.GothamBold
+    HT.TextSize = 13
+    HT.TextXAlignment = Enum.TextXAlignment.Left
+    HT.ZIndex = 50
+    HT.Parent = H
+    local HC = Instance.new("TextButton")
+    HC.Size = UDim2.new(0, 25, 0, 25)
+    HC.Position = UDim2.new(1, -30, 0, 5)
+    HC.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    HC.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HC.Text = "X"
+    HC.Font = Enum.Font.GothamBold
+    HC.TextSize = 12
+    HC.BorderSizePixel = 0
+    HC.ZIndex = 51
+    HC.Parent = H
+    Instance.new("UICorner", HC).CornerRadius = UDim.new(0, 6)
+    HC.MouseButton1Click:Connect(function() Sub.Visible = false end)
+    local Body = Instance.new("Frame")
+    Body.Size = UDim2.new(1, -16, 1, -50)
+    Body.Position = UDim2.new(0, 8, 0, 42)
+    Body.BackgroundTransparency = 1
+    Body.ZIndex = 50
+    Body.Parent = Sub
+    local BL = Instance.new("UIListLayout", Body); BL.Padding = UDim.new(0, 8)
+    local function makeStepSlider(label, getVal, setVal, step, min, max, suffix)
+        local F = Instance.new("Frame")
+        F.Size = UDim2.new(1, 0, 0, 48)
+        F.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+        F.BorderSizePixel = 0
+        F.ZIndex = 50
+        F.Parent = Body
+        Instance.new("UICorner", F).CornerRadius = UDim.new(0, 6)
+        local L = Instance.new("TextLabel")
+        L.Size = UDim2.new(1, -80, 0, 18)
+        L.Position = UDim2.new(0, 10, 0, 3)
+        L.BackgroundTransparency = 1
+        L.Text = label
+        L.TextColor3 = Color3.fromRGB(210, 210, 210)
+        L.Font = Enum.Font.Gotham
+        L.TextSize = 11
+        L.TextXAlignment = Enum.TextXAlignment.Left
+        L.ZIndex = 51
+        L.Parent = F
+        local V = Instance.new("TextLabel")
+        V.Size = UDim2.new(0, 80, 0, 18)
+        V.Position = UDim2.new(1, -90, 0, 3)
+        V.BackgroundTransparency = 1
+        V.Text = tostring(getVal()) .. (suffix or "")
+        V.TextColor3 = cfg.Color
+        V.Font = Enum.Font.GothamBold
+        V.TextSize = 11
+        V.ZIndex = 51
+        V.Parent = F
+        local Minus = Instance.new("TextButton")
+        Minus.Size = UDim2.new(0, 45, 0, 20)
+        Minus.Position = UDim2.new(0, 10, 0, 24)
+        Minus.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        Minus.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Minus.Text = "-"
+        Minus.Font = Enum.Font.GothamBold
+        Minus.TextSize = 16
+        Minus.BorderSizePixel = 0
+        Minus.ZIndex = 51
+        Minus.Parent = F
+        Instance.new("UICorner", Minus).CornerRadius = UDim.new(0, 5)
+        local Plus = Instance.new("TextButton")
+        Plus.Size = UDim2.new(0, 45, 0, 20)
+        Plus.Position = UDim2.new(1, -55, 0, 24)
+        Plus.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        Plus.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Plus.Text = "+"
+        Plus.Font = Enum.Font.GothamBold
+        Plus.TextSize = 16
+        Plus.BorderSizePixel = 0
+        Plus.ZIndex = 51
+        Plus.Parent = F
+        Instance.new("UICorner", Plus).CornerRadius = UDim.new(0, 5)
+        local function update(v)
+            v = math.clamp(v, min, max)
+            setVal(v)
+            V.Text = tostring(v) .. (suffix or "")
+        end
+        Minus.MouseButton1Click:Connect(function() update(getVal() - step) end)
+        Plus.MouseButton1Click:Connect(function() update(getVal() + step) end)
+    end
+    makeStepSlider("Power", function() return cfg.Power end, function(v) cfg.Power = v end, 50, 50, 2000, "")
+    makeStepSlider("Duration", function() return math.floor(cfg.Duration * 100) end, function(v) cfg.Duration = v / 100 end, 10, 10, 300, " cs")
+    makeStepSlider("Min Charge", function() return math.floor(cfg.MinCharge * 10) end, function(v) cfg.MinCharge = v / 10 end, 1, 0, 50, "")
+    cfg.SubWindow = Sub
+end
+
+for key, cfg in pairs(BoostConfig) do
+    createBoostSubWindow(key, cfg, screenGui)
+end
+
+createToggleWithGear(glitchScroll, "Sanguine Auto", "SanguineAuto", BoostConfig.SanguineAuto, function()
+    if BoostConfig.SanguineAuto.SubWindow then BoostConfig.SanguineAuto.SubWindow.Visible = not BoostConfig.SanguineAuto.SubWindow.Visible end
+end, 1)
+
+createToggleWithGear(glitchScroll, "DTalon Auto", "DTalonAuto", BoostConfig.DTalonAuto, function()
+    if BoostConfig.DTalonAuto.SubWindow then BoostConfig.DTalonAuto.SubWindow.Visible = not BoostConfig.DTalonAuto.SubWindow.Visible end
+end, 2)
+
+-- ═══════════════════════════════════════════════════════════
+-- SORU (SIN MODIFICAR)
+-- ═══════════════════════════════════════════════════════════
+local soruScroll = Instance.new("ScrollingFrame")
+soruScroll.Size = UDim2.new(1, 0, 1, 0)
+soruScroll.BackgroundTransparency = 1
+soruScroll.BorderSizePixel = 0
+soruScroll.ScrollBarThickness = 3
+soruScroll.CanvasSize = UDim2.new(0, 0, 0, 250)
+soruScroll.ZIndex = 22
+soruScroll.Parent = centerContent
+soruScroll.Visible = false
+
+local soruLayout = Instance.new("UIListLayout")
+soruLayout.Padding = UDim.new(0, 6)
+soruLayout.SortOrder = Enum.SortOrder.LayoutOrder
+soruLayout.Parent = soruScroll
+
+-- Placeholders Soru (lógica abajo)
+_G_SoruInfinito = false
+_G_SoruAimbot = false
+_G_PortalSoru = false
+
+createToggleBtn(soruScroll, "Soru Infinito", function() return _G_SoruInfinito end, function(v) _G_SoruInfinito = v end, 1)
+createToggleBtn(soruScroll, "Soru Aimbot", function() return _G_SoruAimbot end, function(v) _G_SoruAimbot = v end, 2)
+createToggleBtn(soruScroll, "Portal Soru X+Z", function() return _G_PortalSoru end, function(v) _G_PortalSoru = v end, 3)
+
+-- Lógica Soru (adaptada)
+local SoruInfinitoEnabled = false
+local SoruAimbotEnabled = false
+local PortalSoruEnabled = false
+local SelectedSoruTarget = "Nearest"
+local soruMaxDist = 1000
+
+-- sync con toggles
+task.spawn(function()
+    while screenGui and screenGui.Parent do
+        task.wait(0.2)
+        SoruInfinitoEnabled = _G_SoruInfinito
+        SoruAimbotEnabled = _G_SoruAimbot
+        PortalSoruEnabled = _G_PortalSoru
+    end
+end)
+
+local function getSoruClosestPlayer(overrideMaxDist)
+    local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+    local searchDist = overrideMaxDist or soruMaxDist or 1000
+    if SelectedSoruTarget ~= "Nearest" and SelectedSoruTarget ~= nil then
+        local targetP = Players:FindFirstChild(SelectedSoruTarget)
+        if targetP and targetP ~= LocalPlayer and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = targetP.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then return targetP.Character end
+        end
+    end
+    local closest = nil
+    local closestDist = math.huge
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local dist = (p.Character.HumanoidRootPart.Position - myHRP.Position).Magnitude
+                if dist < closestDist and dist <= searchDist then
+                    closestDist = dist
+                    closest = p.Character
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function performExtendedSoru(targetPos)
+    if not targetPos then return end
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local currentPos = hrp.Position
+    local fullDist = (targetPos - currentPos).Magnitude
+    local commFRemote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+    if fullDist <= 950 then
+        pcall(function()
+            if commFRemote then commFRemote:InvokeServer("Flashstep", targetPos)
+            else hrp.CFrame = CFrame.new(targetPos) end
+        end)
+        return
+    end
+    local steps = math.ceil(fullDist / 900)
+    local dir = (targetPos - currentPos).Unit
+    for i = 1, steps do
+        local nextDist = math.min(i * 900, fullDist)
+        local nextPos = currentPos + (dir * nextDist)
+        pcall(function()
+            if commFRemote then commFRemote:InvokeServer("Flashstep", nextPos)
+            else hrp.CFrame = CFrame.new(nextPos) end
+        end)
+        task.wait(0.015)
+    end
+end
+
+local function enforceSoru(char)
+    if not char then return end
+    if SoruInfinitoEnabled then pcall(function() char:SetAttribute("FlashstepCooldown", 1) end) end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char) task.wait(0.2); enforceSoru(char) end)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        if SoruInfinitoEnabled and LocalPlayer.Character then
+            pcall(function() LocalPlayer.Character:SetAttribute("FlashstepCooldown", 1) end)
+        end
+    end
+end)
+
+local SoruMouse = LocalPlayer:GetMouse()
+do
+    local ok, mt = pcall(getrawmetatable, game)
+    if ok and mt then
+        local oldIndex = mt.__index
+        local oldNamecall = mt.__namecall
+        local function isCaller() if checkcaller then return checkcaller() end return false end
+        local success = pcall(setreadonly, mt, false)
+        if success then
+            mt.__index = function(self, key)
+                if not isCaller() and self == SoruMouse and (key == "Hit" or key == "Target") and SoruAimbotEnabled then
+                    local targetChar = getSoruClosestPlayer(soruMaxDist)
+                    local eHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+                    if eHRP then
+                        local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if myHRP then
+                            local dist = (myHRP.Position - eHRP.Position).Magnitude
+                            if dist <= (soruMaxDist or 1000) then
+                                if dist > 950 then task.spawn(function() performExtendedSoru(eHRP.Position) end) end
+                                if key == "Hit" then return CFrame.new(eHRP.Position) end
+                                if key == "Target" then return eHRP end
+                            end
+                        end
+                    end
+                end
+                return oldIndex(self, key)
+            end
+            mt.__namecall = function(self, ...) return oldNamecall(self, ...) end
+            pcall(setreadonly, mt, true)
+        end
+    end
+end
+
+local FLASH_NAMES = {"FlashStepRegular", "FlashStepDraco", "FlashStep", "Flashstep", "Soru"}
+local FLASH_IDS = {"17555632156", "18461649274", "616006778", "616010882", "5403485593", "5403491911"}
+
+local function isFlashstep(track)
+    for _, name in ipairs(FLASH_NAMES) do
+        if string.find(string.lower(track.Name), string.lower(name)) then return true end
+    end
+    local id = track.Animation and track.Animation.AnimationId:match("%d+") or ""
+    for _, flashId in ipairs(FLASH_IDS) do if id == flashId then return true end end
+    return false
+end
+
+local function isHoldingPortalFruit()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        local name = string.lower(tool.Name)
+        if string.find(name, "portal") or string.find(name, "door") then return true end
+    end
+    return false
+end
+
+local function equipPortalFruit()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return nil end
+    local tool = char:FindFirstChild("Portal-Portal") or char:FindFirstChild("Portal Fruit") or char:FindFirstChild("Portal") or char:FindFirstChild("Door")
+    if not tool then
+        local bp = LocalPlayer:FindFirstChild("Backpack")
+        if bp then
+            for _, t in ipairs(bp:GetChildren()) do
+                local name = string.lower(t.Name)
+                if string.find(name, "portal") or string.find(name, "door") then
+                    hum:EquipTool(t)
+                    tool = t
+                    task.wait(0.1)
+                    break
+                end
+            end
+        end
+    end
+    return tool
+end
+
+local function doPortalCombo()
+    if not isHoldingPortalFruit() then equipPortalFruit(); task.wait(0.08) end
+    if not isHoldingPortalFruit() then return end
+    local function pressKey(keyCode)
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end
+    pressKey(Enum.KeyCode.X)
+    task.wait(0.15)
+    pressKey(Enum.KeyCode.Z)
+end
+
+local function monitorCharPortal(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if not hum then return end
+    hum.AnimationPlayed:Connect(function(track)
+        if PortalSoruEnabled and isFlashstep(track) then task.spawn(doPortalCombo) end
+    end)
+end
+
+LocalPlayer.CharacterAdded:Connect(monitorCharPortal)
+if LocalPlayer.Character then monitorCharPortal(LocalPlayer.Character) end
+
+-- ═══════════════════════════════════════════════════════════
+-- APPEARANCE
+-- ═══════════════════════════════════════════════════════════
+local appearanceScroll = Instance.new("ScrollingFrame")
+appearanceScroll.Size = UDim2.new(1, 0, 1, 0)
+appearanceScroll.BackgroundTransparency = 1
+appearanceScroll.BorderSizePixel = 0
+appearanceScroll.ScrollBarThickness = 3
+appearanceScroll.CanvasSize = UDim2.new(0, 0, 0, 400)
+appearanceScroll.ZIndex = 22
+appearanceScroll.Parent = centerContent
+appearanceScroll.Visible = false
+
+local appearanceLayout = Instance.new("UIListLayout")
+appearanceLayout.Padding = UDim.new(0, 6)
+appearanceLayout.SortOrder = Enum.SortOrder.LayoutOrder
+appearanceLayout.Parent = appearanceScroll
+
+local fakeKorbloxEnabled = true
+local fakeHeadlessEnabled = true
+local activeAura = nil
+local auraObjects = {}
+
+local function applyFakeKorblox()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local rl = char:FindFirstChild("RightUpperLeg")
+    local rl2 = char:FindFirstChild("RightLowerLeg")
+    local rf = char:FindFirstChild("RightFoot")
+    if rl then
+        rl.Transparency = 1
+        for _, c in pairs(rl:GetChildren()) do if c:IsA("SpecialMesh") then c:Destroy() end end
+        local mesh = Instance.new("SpecialMesh")
+        mesh.MeshId = "rbxassetid://139607718"
+        mesh.TextureId = "rbxassetid://139607673"
+        mesh.Parent = rl
+    end
+    if rl2 then rl2.Transparency = 1 end
+    if rf then rf.Transparency = 1 end
+end
+
+local function removeFakeKorblox()
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _, n in pairs({"RightUpperLeg","RightLowerLeg","RightFoot","LeftUpperLeg","LeftLowerLeg","LeftFoot"}) do
+        local p = char:FindFirstChild(n)
+        if p then p.Transparency = 0 end
+    end
+end
+
+local function applyFakeHeadless()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    if head then
+        head.Transparency = 1
+        local face = head:FindFirstChild("face")
+        if face then face.Transparency = 1 end
+    end
+    for _, obj in pairs(char:GetChildren()) do
+        if obj:IsA("Accessory") then
+            local handle = obj:FindFirstChild("Handle")
+            if handle then
+                handle.Transparency = 1
+                for _, sub in pairs(handle:GetDescendants()) do
+                    if sub:IsA("BasePart") or sub:IsA("Decal") or sub:IsA("Texture") then sub.Transparency = 1 end
+                end
+            end
+        end
+    end
+end
+
+local function removeFakeHeadless()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    if head then
+        head.Transparency = 0
+        local face = head:FindFirstChild("face")
+        if face then face.Transparency = 0 end
+    end
+end
+
+-- Fake Korblox toggle (ON por defecto)
+createToggleBtn(appearanceScroll, "Fake Korblox", function() return fakeKorbloxEnabled end, function(v)
+    fakeKorbloxEnabled = v
+    if v then applyFakeKorblox() else removeFakeKorblox() end
+end, 1)
+
+-- Fake Headless toggle (ON por defecto)
+createToggleBtn(appearanceScroll, "Fake Headless", function() return fakeHeadlessEnabled end, function(v)
+    fakeHeadlessEnabled = v
+    if v then applyFakeHeadless() else removeFakeHeadless() end
+end, 2)
+
+-- Aplicar al inicio y al reaparecer
+task.spawn(function()
+    task.wait(1)
+    if fakeKorbloxEnabled then applyFakeKorblox() end
+    if fakeHeadlessEnabled then applyFakeHeadless() end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if fakeKorbloxEnabled then applyFakeKorblox() end
+    if fakeHeadlessEnabled then applyFakeHeadless() end
+end)
+
+task.spawn(function()
+    while screenGui and screenGui.Parent do
+        task.wait(0.5)
+        if LocalPlayer.Character then
+            if fakeKorbloxEnabled then applyFakeKorblox() end
+            if fakeHeadlessEnabled then applyFakeHeadless() end
+        end
+    end
+end)
+
+-- Auras
+local auraTitle = Instance.new("TextLabel")
+auraTitle.Size = UDim2.new(1, -12, 0, 20)
+auraTitle.Position = UDim2.new(0, 6, 0, 0)
+auraTitle.BackgroundTransparency = 1
+auraTitle.Text = "AURAS VFX"
+auraTitle.TextColor3 = Color3.fromRGB(150, 0, 255)
+auraTitle.Font = Enum.Font.GothamBold
+auraTitle.TextSize = 11
+auraTitle.LayoutOrder = 10
+auraTitle.ZIndex = 23
+auraTitle.Parent = appearanceScroll
+applyFont(auraTitle, Enum.FontWeight.Bold)
+
+local auraConfig = {
+    {name = "Inferno", color = Color3.fromRGB(255, 80, 0)},
+    {name = "Electric", color = Color3.fromRGB(0, 170, 255)},
+    {name = "DarkSpirit", color = Color3.fromRGB(150, 0, 255)},
+    {name = "Toxic", color = Color3.fromRGB(0, 255, 80)},
+    {name = "Frost", color = Color3.fromRGB(200, 230, 255)},
+}
+
+for idx, aura in ipairs(auraConfig) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -12, 0, 26)
+    btn.BackgroundColor3 = aura.color
+    btn.BackgroundTransparency = 0.75
+    btn.Text = aura.name
+    btn.TextColor3 = aura.color
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.LayoutOrder = 10 + idx
+    btn.ZIndex = 23
+    btn.Parent = appearanceScroll
+    applyFont(btn, Enum.FontWeight.Bold)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+    btn.MouseButton1Click:Connect(function()
+        if activeAura == aura.name then
+            activeAura = nil
+            for _, obj in pairs(auraObjects) do if obj and obj.Parent then obj:Destroy() end end
+            auraObjects = {}
+            btn.BackgroundTransparency = 0.75
+        else
+            activeAura = aura.name
+            for _, obj in pairs(auraObjects) do if obj and obj.Parent then obj:Destroy() end end
+            auraObjects = {}
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local emitter = Instance.new("ParticleEmitter")
+                emitter.Texture = "rbxassetid://243098098"
+                emitter.Color = ColorSequence.new(aura.color, aura.color)
+                emitter.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(0.5, 2), NumberSequenceKeypoint.new(1, 0)})
+                emitter.Rate = 100
+                emitter.Speed = NumberRange.new(2, 5)
+                emitter.Lifetime = NumberRange.new(0.5, 1.5)
+                emitter.SpreadAngle = Vector2.new(30, 30)
+                emitter.Parent = hrp
+                table.insert(auraObjects, emitter)
+            end
+            btn.BackgroundTransparency = 0.3
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════
+-- MISC (Fast Flags)
 -- ═══════════════════════════════════════════════════════════
 local miscScroll = Instance.new("ScrollingFrame")
 miscScroll.Size = UDim2.new(1, 0, 1, 0)
-miscScroll.Position = UDim2.new(0, 0, 0, 0)
 miscScroll.BackgroundTransparency = 1
 miscScroll.BorderSizePixel = 0
 miscScroll.ScrollBarThickness = 3
@@ -1406,7 +1890,7 @@ local ffDesc = Instance.new("TextLabel")
 ffDesc.Size = UDim2.new(1, -20, 0, 20)
 ffDesc.Position = UDim2.new(0, 12, 0, 34)
 ffDesc.BackgroundTransparency = 1
-ffDesc.Text = "FPS Boost • Ping Optimizer • Less Lag"
+ffDesc.Text = "FPS Boost • Ping Optimizer"
 ffDesc.TextColor3 = Color3.fromRGB(220, 220, 230)
 ffDesc.TextSize = 10
 ffDesc.Font = Enum.Font.Gotham
@@ -1516,8 +2000,9 @@ local function selectTab(tab)
     centerTitle.Text = tabsData[tab].titulo
 
     combatScroll.Visible = (tab == tabCombat)
-    movementScroll.Visible = (tab == tabMovement)
-    visualsScroll.Visible = (tab == tabVisuals)
+    glitchScroll.Visible = (tab == tabGlitch)
+    soruScroll.Visible = (tab == tabSoru)
+    appearanceScroll.Visible = (tab == tabAppearance)
     miscScroll.Visible = (tab == tabMisc)
 
     activeTab = tab
@@ -1547,38 +2032,60 @@ end
 
 floatBtn.MouseButton1Click:Connect(toggleUI)
 
+-- Jump (G) y Sanguine Manual (Alt Izq)
+local function executeJump()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+    pcall(function()
+        for _, v in pairs(hrp:GetChildren()) do
+            if v:IsA("BodyVelocity") and v.Name == "AHKJump" then v:Destroy() end
+        end
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "AHKJump"
+        bv.MaxForce = Vector3.new(0, 50000, 0)
+        bv.Velocity = Vector3.new(0, 1000, 0)
+        bv.Parent = hrp
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        task.delay(0.05, function() pcall(function() if hum and hum.Parent then hum:ChangeState(Enum.HumanoidStateType.Freefall) end end) end)
+        task.delay(0.15, function() if bv then bv:Destroy() end end)
+    end)
+end
+
+local function executeSanguineBoost()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+    local dir = camera.CFrame.LookVector
+    hum.PlatformStand = true
+    local att = Instance.new("Attachment", hrp)
+    local lv = Instance.new("LinearVelocity", hrp)
+    lv.MaxForce = 9999999
+    lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    lv.VectorVelocity = dir * 500
+    lv.Attachment0 = att
+    task.delay(0.30, function()
+        if lv then lv:Destroy() end
+        if att then att:Destroy() end
+        if hum then hum.PlatformStand = false end
+    end)
+end
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
-    -- Right Alt = abrir/cerrar UI
     if input.KeyCode == Enum.KeyCode.RightAlt then
         toggleUI()
-
-    -- CapsLock = Silent Aim toggle
     elseif input.KeyCode == Enum.KeyCode.CapsLock then
         _G_SilentAimSkill = not _G_SilentAimSkill
         showNotif("AHK", "Silent Aim: " .. (_G_SilentAimSkill and "ON" or "OFF"))
-
-    -- G = Jump
     elseif input.KeyCode == Enum.KeyCode.G then
         executeJump()
-
-    -- Left Alt = Sanguine Manual
     elseif input.KeyCode == Enum.KeyCode.LeftAlt then
         executeSanguineBoost()
-
-    -- M = M1 Gun toggle
-    elseif input.KeyCode == Enum.KeyCode.M then
-        _G_DragonGunM1 = not _G_DragonGunM1
-        showNotif("AHK", "M1 Gun: " .. (_G_DragonGunM1 and "ON" or "OFF"))
-    end
-end)
-
--- Refrescar toggles cada 0.25s
-task.spawn(function()
-    while screenGui and screenGui.Parent do
-        task.wait(0.25)
-        for _, fn in ipairs(toggleRefreshes) do pcall(fn) end
     end
 end)
 
@@ -1637,10 +2144,16 @@ LocalPlayer.CharacterAdded:Connect(function()
     if stats then stats.muertes = stats.muertes + 1 end
 end)
 
+-- Refrescar toggles cada 0.25s
+task.spawn(function()
+    while screenGui and screenGui.Parent do
+        task.wait(0.25)
+        for _, fn in ipairs(toggleRefreshes) do pcall(fn) end
+    end
+end)
+
 -- NOTIFICACIONES INICIALES
 task.wait(1)
 showNotif("AHK", "Right Alt = Open/Close UI")
 task.wait(1.5)
-showNotif("AHK", "CapsLock = Silent Aim")
-task.wait(1.5)
-showNotif("AHK", "G = Jump  |  Left Alt = Sanguine  |  M = M1")
+showNotif("AHK", "CapsLock = Silent Aim  |  G = Jump  |  Left Alt = Sanguine")
