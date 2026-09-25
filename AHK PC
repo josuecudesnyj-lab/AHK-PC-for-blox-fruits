@@ -13,6 +13,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local NOMBRE_SCRIPT = "AHK"
 local IMAGEN_FONDO = "rbxassetid://77642622960834"
 local ICONO_BOTON = "rbxassetid://105608688810397"
+local FUENTE = "rbxassetid://12187371840"
 local COLOR_GRIS = Color3.fromRGB(75, 78, 88)
 local COLOR_GRIS_HOVER = Color3.fromRGB(100, 104, 115)
 local COLOR_GRIS_OSCURO = Color3.fromRGB(22, 22, 28)
@@ -23,12 +24,17 @@ local ultimoBounty = 0
 local currentFPS = 0
 local currentPing = 0
 
+-- Función helper para aplicar FontFace
+local function applyFont(label, weight)
+    pcall(function()
+        label.FontFace = Font.new(FUENTE, weight or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    end)
+end
+
 local oldGui = PlayerGui:FindFirstChild("AHKUI")
 if oldGui then oldGui:Destroy() end
 
--- ═══════════════════════════════════════════════════════════
 -- SCREEN GUI
--- ═══════════════════════════════════════════════════════════
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AHKUI"
 screenGui.ResetOnSpawn = false
@@ -68,8 +74,8 @@ end)
 -- OVERLAY FPS / PING
 local overlayFPS = Instance.new("Frame")
 overlayFPS.Name = "FPSPingOverlay"
-overlayFPS.Size = UDim2.new(0, 160, 0, 26)
-overlayFPS.Position = UDim2.new(1, -170, 0, 10)
+overlayFPS.Size = UDim2.new(0, 170, 0, 26)
+overlayFPS.Position = UDim2.new(1, -180, 0, 10)
 overlayFPS.BackgroundColor3 = COLOR_GRIS_OSCURO
 overlayFPS.BackgroundTransparency = 0.2
 overlayFPS.BorderSizePixel = 0
@@ -95,6 +101,7 @@ overlayText.TextSize = 12
 overlayText.Font = Enum.Font.GothamBold
 overlayText.ZIndex = 26
 overlayText.Parent = overlayFPS
+applyFont(overlayText, Enum.FontWeight.Bold)
 
 local frameCount = 0
 local lastTime = tick()
@@ -120,9 +127,7 @@ task.spawn(function()
     end
 end)
 
--- ═══════════════════════════════════════════════════════════
--- FAST FLAGS SYSTEM
--- ═══════════════════════════════════════════════════════════
+-- FAST FLAGS
 local FastFlagsActivos = false
 
 local FastFlagsList = {
@@ -163,9 +168,7 @@ local function quitarFastFlags()
     end)
 end
 
--- ═══════════════════════════════════════════════════════════
 -- PANEL PRINCIPAL
--- ═══════════════════════════════════════════════════════════
 local PANEL_W = math.floor(750 * 1.15)
 local PANEL_H = math.floor(450 * 1.15)
 
@@ -191,7 +194,7 @@ mainStroke.Color = COLOR_GRIS
 mainStroke.Transparency = 0.2
 mainStroke.Parent = mainPanel
 
--- FONDO IMAGEN (85% visible)
+-- IMAGEN FONDO
 local bgImage = Instance.new("ImageLabel")
 bgImage.Name = "BackgroundImage"
 bgImage.Size = UDim2.new(1, 0, 1, 0)
@@ -202,7 +205,6 @@ bgImage.ImageTransparency = 0.15
 bgImage.ZIndex = 16
 bgImage.Parent = mainPanel
 
--- Overlay oscuro LIGERO (20%)
 local darkOverlay = Instance.new("Frame")
 darkOverlay.Size = UDim2.new(1, 0, 1, 0)
 darkOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -236,6 +238,7 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.ZIndex = 21
 titleLabel.Parent = header
+applyFont(titleLabel, Enum.FontWeight.Bold)
 
 local titleStroke = Instance.new("UIStroke")
 titleStroke.Thickness = 2
@@ -255,6 +258,7 @@ closeAllBtn.Font = Enum.Font.GothamBold
 closeAllBtn.AutoButtonColor = false
 closeAllBtn.ZIndex = 21
 closeAllBtn.Parent = header
+applyFont(closeAllBtn, Enum.FontWeight.Bold)
 
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 6)
@@ -299,6 +303,8 @@ tabsTitle.Font = Enum.Font.GothamBold
 tabsTitle.TextXAlignment = Enum.TextXAlignment.Left
 tabsTitle.ZIndex = 21
 tabsTitle.Parent = leftColumn
+applyFont(tabsTitle, Enum.FontWeight.Bold)
+
 local tabsTitleStroke = Instance.new("UIStroke")
 tabsTitleStroke.Thickness = 1.5
 tabsTitleStroke.Color = Color3.fromRGB(0, 0, 0)
@@ -328,12 +334,13 @@ local function createTab(nombre, layoutOrder)
     btn.BorderSizePixel = 0
     btn.Text = nombre
     btn.TextColor3 = Color3.fromRGB(220, 220, 230)
-    btn.TextSize = 13
+    btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
     btn.AutoButtonColor = false
     btn.LayoutOrder = layoutOrder
     btn.ZIndex = 22
     btn.Parent = tabsContainer
+    applyFont(btn, Enum.FontWeight.Bold)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 6)
     c.Parent = btn
@@ -370,6 +377,8 @@ centerTitle.Font = Enum.Font.GothamBold
 centerTitle.TextXAlignment = Enum.TextXAlignment.Left
 centerTitle.ZIndex = 21
 centerTitle.Parent = centerColumn
+applyFont(centerTitle, Enum.FontWeight.Bold)
+
 local centerTitleStroke = Instance.new("UIStroke")
 centerTitleStroke.Thickness = 1.5
 centerTitleStroke.Color = Color3.fromRGB(0, 0, 0)
@@ -408,15 +417,35 @@ rightTitle.Font = Enum.Font.GothamBold
 rightTitle.TextXAlignment = Enum.TextXAlignment.Left
 rightTitle.ZIndex = 21
 rightTitle.Parent = rightColumn
+applyFont(rightTitle, Enum.FontWeight.Bold)
+
 local rightTitleStroke = Instance.new("UIStroke")
 rightTitleStroke.Thickness = 1.5
 rightTitleStroke.Color = Color3.fromRGB(0, 0, 0)
 rightTitleStroke.Transparency = 0.3
 rightTitleStroke.Parent = rightTitle
 
+local statsScroll = Instance.new("ScrollingFrame")
+statsScroll.Name = "StatsScroll"
+statsScroll.Size = UDim2.new(1, -22, 1, -50)
+statsScroll.Position = UDim2.new(0, 11, 0, 45)
+statsScroll.BackgroundTransparency = 1
+statsScroll.BorderSizePixel = 0
+statsScroll.ScrollBarThickness = 3
+statsScroll.ScrollBarImageColor3 = COLOR_GRIS
+statsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+statsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+statsScroll.ZIndex = 21
+statsScroll.Parent = rightColumn
+
+local statsLayout = Instance.new("UIListLayout")
+statsLayout.Padding = UDim.new(0, 7)
+statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+statsLayout.Parent = statsScroll
+
 local function createStatRow(parent, label, valorInicial, orden, altura)
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, altura or 42)
+    row.Size = UDim2.new(1, 0, 0, altura or 38)
     row.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     row.BackgroundTransparency = 0.6
     row.BorderSizePixel = 0
@@ -433,61 +462,51 @@ local function createStatRow(parent, label, valorInicial, orden, altura)
     s.Parent = row
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -18, 0, 18)
-    lbl.Position = UDim2.new(0, 12, 0, 5)
+    lbl.Size = UDim2.new(1, -18, 0, 16)
+    lbl.Position = UDim2.new(0, 12, 0, 4)
     lbl.BackgroundTransparency = 1
     lbl.Text = label
     lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
-    lbl.TextSize = 11
+    lbl.TextSize = 10
     lbl.Font = Enum.Font.Gotham
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.ZIndex = 22
     lbl.Parent = row
+    applyFont(lbl, Enum.FontWeight.Regular)
 
     local val = Instance.new("TextLabel")
-    val.Size = UDim2.new(1, -18, 0, 20)
-    val.Position = UDim2.new(0, 12, 0, 22)
+    val.Size = UDim2.new(1, -18, 0, 18)
+    val.Position = UDim2.new(0, 12, 0, 19)
     val.BackgroundTransparency = 1
     val.Text = tostring(valorInicial)
     val.TextColor3 = Color3.fromRGB(255, 255, 255)
-    val.TextSize = 15
+    val.TextSize = 14
     val.Font = Enum.Font.GothamBold
     val.TextXAlignment = Enum.TextXAlignment.Left
     val.ZIndex = 22
     val.Parent = row
+    applyFont(val, Enum.FontWeight.Bold)
 
     return val
 end
 
-local statsContainer = Instance.new("Frame")
-statsContainer.Size = UDim2.new(1, -22, 1, -50)
-statsContainer.Position = UDim2.new(0, 11, 0, 45)
-statsContainer.BackgroundTransparency = 1
-statsContainer.ZIndex = 21
-statsContainer.Parent = rightColumn
-
-local statsLayout = Instance.new("UIListLayout")
-statsLayout.Padding = UDim.new(0, 7)
-statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-statsLayout.Parent = statsContainer
-
-local levelLabel = createStatRow(statsContainer, "Level", "0", 1)
-local bountyLabel = createStatRow(statsContainer, "Bounty", "0", 2)
-local conexionLabel = createStatRow(statsContainer, "Ping", "0 ms", 3)
-local fpsLabel = createStatRow(statsContainer, "FPS", "0", 4)
-local bountyGanadoLabel = createStatRow(statsContainer, "Bounty Gained", "0", 5)
-local muertesLabel = createStatRow(statsContainer, "Deaths", "0", 6)
-local killsLabel = createStatRow(statsContainer, "Kills", "0", 7)
+local levelLabel = createStatRow(statsScroll, "Level", "0", 1)
+local bountyLabel = createStatRow(statsScroll, "Bounty", "0", 2)
+local conexionLabel = createStatRow(statsScroll, "Ping", "0 ms", 3)
+local fpsLabel = createStatRow(statsScroll, "FPS", "0", 4)
+local bountyGanadoLabel = createStatRow(statsScroll, "Bounty Gained", "0", 5)
+local muertesLabel = createStatRow(statsScroll, "Deaths", "0", 6)
+local killsLabel = createStatRow(statsScroll, "Kills", "0", 7)
 
 -- USER INFO CARD
 local userCard = Instance.new("Frame")
-userCard.Size = UDim2.new(1, 0, 0, 95)
+userCard.Size = UDim2.new(1, 0, 0, 70)
 userCard.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
 userCard.BackgroundTransparency = 0.6
 userCard.BorderSizePixel = 0
 userCard.LayoutOrder = 8
 userCard.ZIndex = 21
-userCard.Parent = statsContainer
+userCard.Parent = statsScroll
 local userCorner = Instance.new("UICorner")
 userCorner.CornerRadius = UDim.new(0, 6)
 userCorner.Parent = userCard
@@ -498,8 +517,8 @@ userStroke.Transparency = 0.3
 userStroke.Parent = userCard
 
 local userAvatar = Instance.new("ImageLabel")
-userAvatar.Size = UDim2.new(0, 72, 0, 72)
-userAvatar.Position = UDim2.new(0, 11, 0, 11)
+userAvatar.Size = UDim2.new(0, 50, 0, 50)
+userAvatar.Position = UDim2.new(0, 10, 0, 10)
 userAvatar.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
 userAvatar.BorderSizePixel = 0
 userAvatar.ScaleType = Enum.ScaleType.Crop
@@ -510,35 +529,37 @@ avatarCorner.CornerRadius = UDim.new(1, 0)
 avatarCorner.Parent = userAvatar
 
 local avatarStroke = Instance.new("UIStroke")
-avatarStroke.Thickness = 2
+avatarStroke.Thickness = 1.5
 avatarStroke.Color = COLOR_GRIS
 avatarStroke.Parent = userAvatar
 
 local userName = Instance.new("TextLabel")
-userName.Size = UDim2.new(1, -100, 0, 20)
-userName.Position = UDim2.new(0, 92, 0, 22)
+userName.Size = UDim2.new(1, -75, 0, 18)
+userName.Position = UDim2.new(0, 70, 0, 16)
 userName.BackgroundTransparency = 1
 userName.Text = LocalPlayer.DisplayName
 userName.TextColor3 = Color3.fromRGB(255, 255, 255)
-userName.TextSize = 13
+userName.TextSize = 11
 userName.Font = Enum.Font.GothamBold
 userName.TextXAlignment = Enum.TextXAlignment.Left
 userName.TextTruncate = Enum.TextTruncate.AtEnd
 userName.ZIndex = 22
 userName.Parent = userCard
+applyFont(userName, Enum.FontWeight.Bold)
 
 local userTag = Instance.new("TextLabel")
-userTag.Size = UDim2.new(1, -100, 0, 18)
-userTag.Position = UDim2.new(0, 92, 0, 44)
+userTag.Size = UDim2.new(1, -75, 0, 16)
+userTag.Position = UDim2.new(0, 70, 0, 36)
 userTag.BackgroundTransparency = 1
 userTag.Text = "@" .. LocalPlayer.Name
 userTag.TextColor3 = Color3.fromRGB(200, 200, 210)
-userTag.TextSize = 11
+userTag.TextSize = 9
 userTag.Font = Enum.Font.Gotham
 userTag.TextXAlignment = Enum.TextXAlignment.Left
 userTag.TextTruncate = Enum.TextTruncate.AtEnd
 userTag.ZIndex = 22
 userTag.Parent = userCard
+applyFont(userTag, Enum.FontWeight.Regular)
 
 task.spawn(function()
     pcall(function()
@@ -597,11 +618,12 @@ local function showNotif(titulo, texto)
     t.BackgroundTransparency = 1
     t.Text = titulo
     t.TextColor3 = Color3.fromRGB(255, 255, 255)
-    t.TextSize = 13
+    t.TextSize = 12
     t.Font = Enum.Font.GothamBold
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.ZIndex = 32
     t.Parent = notif
+    applyFont(t, Enum.FontWeight.Bold)
 
     local tx = Instance.new("TextLabel")
     tx.Size = UDim2.new(1, -20, 0, 22)
@@ -609,12 +631,13 @@ local function showNotif(titulo, texto)
     tx.BackgroundTransparency = 1
     tx.Text = texto
     tx.TextColor3 = Color3.fromRGB(200, 200, 210)
-    tx.TextSize = 12
+    tx.TextSize = 11
     tx.Font = Enum.Font.Gotham
     tx.TextXAlignment = Enum.TextXAlignment.Left
     tx.TextTruncate = Enum.TextTruncate.AtEnd
     tx.ZIndex = 32
     tx.Parent = notif
+    applyFont(tx, Enum.FontWeight.Regular)
 
     notif.Position = UDim2.new(1, 300, 0, 0)
     TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -647,13 +670,14 @@ centerTextLabel.Position = UDim2.new(0, 10, 0, 10)
 centerTextLabel.BackgroundTransparency = 1
 centerTextLabel.Text = "Select a tab"
 centerTextLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
-centerTextLabel.TextSize = 13
+centerTextLabel.TextSize = 12
 centerTextLabel.Font = Enum.Font.Gotham
 centerTextLabel.TextXAlignment = Enum.TextXAlignment.Left
 centerTextLabel.TextYAlignment = Enum.TextYAlignment.Top
 centerTextLabel.TextWrapped = true
 centerTextLabel.ZIndex = 22
 centerTextLabel.Parent = centerContent
+applyFont(centerTextLabel, Enum.FontWeight.Regular)
 
 -- MISC CONTENT
 local miscContainer = Instance.new("Frame")
@@ -687,11 +711,12 @@ ffTitle.Position = UDim2.new(0, 12, 0, 10)
 ffTitle.BackgroundTransparency = 1
 ffTitle.Text = "FAST FLAGS"
 ffTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-ffTitle.TextSize = 13
+ffTitle.TextSize = 12
 ffTitle.Font = Enum.Font.GothamBold
 ffTitle.TextXAlignment = Enum.TextXAlignment.Left
 ffTitle.ZIndex = 24
 ffTitle.Parent = ffCard
+applyFont(ffTitle, Enum.FontWeight.Bold)
 
 local ffDesc = Instance.new("TextLabel")
 ffDesc.Size = UDim2.new(1, -20, 0, 20)
@@ -699,11 +724,12 @@ ffDesc.Position = UDim2.new(0, 12, 0, 34)
 ffDesc.BackgroundTransparency = 1
 ffDesc.Text = "FPS Boost • Ping Optimizer • Less Lag"
 ffDesc.TextColor3 = Color3.fromRGB(220, 220, 230)
-ffDesc.TextSize = 11
+ffDesc.TextSize = 10
 ffDesc.Font = Enum.Font.Gotham
 ffDesc.TextXAlignment = Enum.TextXAlignment.Left
 ffDesc.ZIndex = 24
 ffDesc.Parent = ffCard
+applyFont(ffDesc, Enum.FontWeight.Regular)
 
 local ffToggleBtn = Instance.new("TextButton")
 ffToggleBtn.Size = UDim2.new(0, 60, 0, 26)
@@ -717,6 +743,7 @@ ffToggleBtn.Font = Enum.Font.GothamBold
 ffToggleBtn.AutoButtonColor = false
 ffToggleBtn.ZIndex = 24
 ffToggleBtn.Parent = ffCard
+applyFont(ffToggleBtn, Enum.FontWeight.Bold)
 
 local ffToggleCorner = Instance.new("UICorner")
 ffToggleCorner.CornerRadius = UDim.new(0, 6)
@@ -729,11 +756,12 @@ ffApplyBtn.BackgroundColor3 = COLOR_GRIS
 ffApplyBtn.BorderSizePixel = 0
 ffApplyBtn.Text = "Apply Fast Flags"
 ffApplyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ffApplyBtn.TextSize = 12
+ffApplyBtn.TextSize = 11
 ffApplyBtn.Font = Enum.Font.GothamBold
 ffApplyBtn.AutoButtonColor = false
 ffApplyBtn.ZIndex = 24
 ffApplyBtn.Parent = ffCard
+applyFont(ffApplyBtn, Enum.FontWeight.Bold)
 
 local ffApplyCorner = Instance.new("UICorner")
 ffApplyCorner.CornerRadius = UDim.new(0, 6)
@@ -746,11 +774,12 @@ ffResetBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
 ffResetBtn.BorderSizePixel = 0
 ffResetBtn.Text = "Reset Fast Flags"
 ffResetBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
-ffResetBtn.TextSize = 11
+ffResetBtn.TextSize = 10
 ffResetBtn.Font = Enum.Font.GothamBold
 ffResetBtn.AutoButtonColor = false
 ffResetBtn.ZIndex = 24
 ffResetBtn.Parent = ffCard
+applyFont(ffResetBtn, Enum.FontWeight.Bold)
 
 local ffResetCorner = Instance.new("UICorner")
 ffResetCorner.CornerRadius = UDim.new(0, 6)
