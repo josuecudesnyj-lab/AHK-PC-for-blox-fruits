@@ -1,0 +1,628 @@
+-- ═══════════════════════════════════════════════════════════
+-- SNIPER TRIS - Librería Propia
+-- ═══════════════════════════════════════════════════════════
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Config
+local NOMBRE_SCRIPT = "Sniper Tris"
+local IMAGEN_FONDO = "rbxassetid://99207554472358"
+local COLOR_GRIS = Color3.fromRGB(75, 78, 88)
+local COLOR_GRIS_HOVER = Color3.fromRGB(100, 104, 115)
+local COLOR_GRIS_OSCURO = Color3.fromRGB(22, 22, 28)
+local COLOR_GRIS_PANEL = Color3.fromRGB(30, 30, 38)
+
+-- Stats del jugador
+local stats = {
+    muertes = 0,
+    kills = 0,
+    bountyGanado = 0
+}
+local ultimoBounty = 0
+
+-- Limpiar UI anterior
+local oldGui = PlayerGui:FindFirstChild("SniperTrisUI")
+if oldGui then oldGui:Destroy() end
+
+-- ═══════════════════════════════════════════════════════════
+-- SCREEN GUI
+-- ═══════════════════════════════════════════════════════════
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SniperTrisUI"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = PlayerGui
+
+-- ═══════════════════════════════════════════════════════════
+-- BOTÓN FLOTANTE
+-- ═══════════════════════════════════════════════════════════
+local floatBtn = Instance.new("TextButton")
+floatBtn.Name = "FloatButton"
+floatBtn.Size = UDim2.new(0, 45, 0, 45)
+floatBtn.Position = UDim2.new(0, 20, 0.5, -22)
+floatBtn.BackgroundColor3 = COLOR_GRIS_OSCURO
+floatBtn.BorderSizePixel = 0
+floatBtn.Text = "S"
+floatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+floatBtn.TextSize = 22
+floatBtn.Font = Enum.Font.GothamBold
+floatBtn.AutoButtonColor = false
+floatBtn.ZIndex = 20
+floatBtn.Parent = screenGui
+
+local floatCorner = Instance.new("UICorner")
+floatCorner.CornerRadius = UDim.new(0, 10)
+floatCorner.Parent = floatBtn
+
+local floatStroke = Instance.new("UIStroke")
+floatStroke.Thickness = 1.5
+floatStroke.Color = COLOR_GRIS
+floatStroke.Parent = floatBtn
+
+floatBtn.MouseEnter:Connect(function()
+    TweenService:Create(floatBtn, TweenInfo.new(0.15), {
+        BackgroundColor3 = COLOR_GRIS_PANEL
+    }):Play()
+end)
+floatBtn.MouseLeave:Connect(function()
+    TweenService:Create(floatBtn, TweenInfo.new(0.15), {
+        BackgroundColor3 = COLOR_GRIS_OSCURO
+    }):Play()
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- PANEL PRINCIPAL
+-- ═══════════════════════════════════════════════════════════
+local mainPanel = Instance.new("Frame")
+mainPanel.Name = "MainPanel"
+mainPanel.Size = UDim2.new(0, 750, 0, 450)
+mainPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+mainPanel.BackgroundColor3 = COLOR_GRIS_OSCURO
+mainPanel.BorderSizePixel = 0
+mainPanel.ClipsDescendants = true
+mainPanel.Visible = false
+mainPanel.ZIndex = 15
+mainPanel.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = mainPanel
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Thickness = 2
+mainStroke.Color = COLOR_GRIS
+mainStroke.Transparency = 0.2
+mainStroke.Parent = mainPanel
+
+-- Imagen de fondo
+local bgImage = Instance.new("ImageLabel")
+bgImage.Name = "BackgroundImage"
+bgImage.Size = UDim2.new(1, 0, 1, 0)
+bgImage.BackgroundTransparency = 1
+bgImage.Image = IMAGEN_FONDO
+bgImage.ScaleType = Enum.ScaleType.Crop
+bgImage.ZIndex = 16
+bgImage.Parent = mainPanel
+
+local darkOverlay = Instance.new("Frame")
+darkOverlay.Size = UDim2.new(1, 0, 1, 0)
+darkOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+darkOverlay.BackgroundTransparency = 0.7
+darkOverlay.BorderSizePixel = 0
+darkOverlay.ZIndex = 17
+darkOverlay.Parent = mainPanel
+
+-- ═══════════════════════════════════════════════════════════
+-- HEADER (título + X)
+-- ═══════════════════════════════════════════════════════════
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 45)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+header.BackgroundTransparency = 0.3
+header.BorderSizePixel = 0
+header.ZIndex = 20
+header.Parent = mainPanel
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 14)
+headerCorner.Parent = header
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(0, 300, 0, 45)
+titleLabel.Position = UDim2.new(0, 20, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "SNIPER TRIS"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 18
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.ZIndex = 21
+titleLabel.Parent = header
+
+local titleStroke = Instance.new("UIStroke")
+titleStroke.Thickness = 2
+titleStroke.Color = Color3.fromRGB(0, 0, 0)
+titleStroke.Transparency = 0.3
+titleStroke.Parent = titleLabel
+
+-- Botón X (cierra TODO el script)
+local closeAllBtn = Instance.new("TextButton")
+closeAllBtn.Name = "CloseAllBtn"
+closeAllBtn.Size = UDim2.new(0, 28, 0, 28)
+closeAllBtn.Position = UDim2.new(1, -38, 0, 8)
+closeAllBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+closeAllBtn.BorderSizePixel = 0
+closeAllBtn.Text = "X"
+closeAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeAllBtn.TextSize = 14
+closeAllBtn.Font = Enum.Font.GothamBold
+closeAllBtn.AutoButtonColor = false
+closeAllBtn.ZIndex = 21
+closeAllBtn.Parent = header
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.Parent = closeAllBtn
+
+closeAllBtn.MouseEnter:Connect(function()
+    TweenService:Create(closeAllBtn, TweenInfo.new(0.15), {
+        BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    }):Play()
+end)
+closeAllBtn.MouseLeave:Connect(function()
+    TweenService:Create(closeAllBtn, TweenInfo.new(0.15), {
+        BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+    }):Play()
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- CONTENEDOR PRINCIPAL (3 columnas)
+-- ═══════════════════════════════════════════════════════════
+local contentContainer = Instance.new("Frame")
+contentContainer.Name = "ContentContainer"
+contentContainer.Size = UDim2.new(1, -20, 1, -60)
+contentContainer.Position = UDim2.new(0, 10, 0, 50)
+contentContainer.BackgroundTransparency = 1
+contentContainer.ZIndex = 20
+contentContainer.Parent = mainPanel
+
+-- ═══ COLUMNA IZQUIERDA (TABS) ═══
+local leftColumn = Instance.new("Frame")
+leftColumn.Name = "LeftColumn"
+leftColumn.Size = UDim2.new(0, 140, 1, 0)
+leftColumn.Position = UDim2.new(0, 0, 0, 0)
+leftColumn.BackgroundColor3 = COLOR_GRIS_PANEL
+leftColumn.BackgroundTransparency = 0.3
+leftColumn.BorderSizePixel = 0
+leftColumn.ZIndex = 20
+leftColumn.Parent = contentContainer
+
+local leftCorner = Instance.new("UICorner")
+leftCorner.CornerRadius = UDim.new(0, 10)
+leftCorner.Parent = leftColumn
+
+local tabsTitle = Instance.new("TextLabel")
+tabsTitle.Size = UDim2.new(1, -20, 0, 25)
+tabsTitle.Position = UDim2.new(0, 10, 0, 10)
+tabsTitle.BackgroundTransparency = 1
+tabsTitle.Text = "TABS"
+tabsTitle.TextColor3 = Color3.fromRGB(180, 180, 190)
+tabsTitle.TextSize = 11
+tabsTitle.Font = Enum.Font.GothamBold
+tabsTitle.TextXAlignment = Enum.TextXAlignment.Left
+tabsTitle.ZIndex = 21
+tabsTitle.Parent = leftColumn
+
+local tabsContainer = Instance.new("Frame")
+tabsContainer.Name = "TabsContainer"
+tabsContainer.Size = UDim2.new(1, -20, 1, -45)
+tabsContainer.Position = UDim2.new(0, 10, 0, 40)
+tabsContainer.BackgroundTransparency = 1
+tabsContainer.ZIndex = 21
+tabsContainer.Parent = leftColumn
+
+local tabsLayout = Instance.new("UIListLayout")
+tabsLayout.Padding = UDim.new(0, 6)
+tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabsLayout.Parent = tabsContainer
+
+-- Función para crear tabs
+local tabsData = {}
+local activeTab = nil
+
+local function createTab(nombre, layoutOrder)
+    local btn = Instance.new("TextButton")
+    btn.Name = nombre .. "Tab"
+    btn.Size = UDim2.new(1, 0, 0, 34)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    btn.BackgroundTransparency = 0.3
+    btn.BorderSizePixel = 0
+    btn.Text = nombre
+    btn.TextColor3 = Color3.fromRGB(200, 200, 210)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamBold
+    btn.AutoButtonColor = false
+    btn.LayoutOrder = layoutOrder
+    btn.ZIndex = 22
+    btn.Parent = tabsContainer
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = btn
+    return btn
+end
+
+-- ═══ COLUMNA CENTRAL (CONTENIDO) ═══
+local centerColumn = Instance.new("Frame")
+centerColumn.Name = "CenterColumn"
+centerColumn.Size = UDim2.new(0, 340, 1, 0)
+centerColumn.Position = UDim2.new(0, 150, 0, 0)
+centerColumn.BackgroundColor3 = COLOR_GRIS_PANEL
+centerColumn.BackgroundTransparency = 0.3
+centerColumn.BorderSizePixel = 0
+centerColumn.ZIndex = 20
+centerColumn.Parent = contentContainer
+
+local centerCorner = Instance.new("UICorner")
+centerCorner.CornerRadius = UDim.new(0, 10)
+centerCorner.Parent = centerColumn
+
+local centerTitle = Instance.new("TextLabel")
+centerTitle.Name = "CenterTitle"
+centerTitle.Size = UDim2.new(1, -20, 0, 25)
+centerTitle.Position = UDim2.new(0, 10, 0, 10)
+centerTitle.BackgroundTransparency = 1
+centerTitle.Text = "CONTENIDO"
+centerTitle.TextColor3 = Color3.fromRGB(180, 180, 190)
+centerTitle.TextSize = 11
+centerTitle.Font = Enum.Font.GothamBold
+centerTitle.TextXAlignment = Enum.TextXAlignment.Left
+centerTitle.ZIndex = 21
+centerTitle.Parent = centerColumn
+
+local centerContent = Instance.new("Frame")
+centerContent.Name = "CenterContent"
+centerContent.Size = UDim2.new(1, -20, 1, -45)
+centerContent.Position = UDim2.new(0, 10, 0, 40)
+centerContent.BackgroundTransparency = 1
+centerContent.ZIndex = 21
+centerContent.Parent = centerColumn
+
+-- ═══ COLUMNA DERECHA (STATS) ═══
+local rightColumn = Instance.new("Frame")
+rightColumn.Name = "RightColumn"
+rightColumn.Size = UDim2.new(0, 240, 1, 0)
+rightColumn.Position = UDim2.new(1, -240, 0, 0)
+rightColumn.BackgroundColor3 = COLOR_GRIS_PANEL
+rightColumn.BackgroundTransparency = 0.3
+rightColumn.BorderSizePixel = 0
+rightColumn.ZIndex = 20
+rightColumn.Parent = contentContainer
+
+local rightCorner = Instance.new("UICorner")
+rightCorner.CornerRadius = UDim.new(0, 10)
+rightCorner.Parent = rightColumn
+
+local rightTitle = Instance.new("TextLabel")
+rightTitle.Size = UDim2.new(1, -20, 0, 25)
+rightTitle.Position = UDim2.new(0, 10, 0, 10)
+rightTitle.BackgroundTransparency = 1
+rightTitle.Text = "ESTADÍSTICAS"
+rightTitle.TextColor3 = Color3.fromRGB(180, 180, 190)
+rightTitle.TextSize = 11
+rightTitle.Font = Enum.Font.GothamBold
+rightTitle.TextXAlignment = Enum.TextXAlignment.Left
+rightTitle.ZIndex = 21
+rightTitle.Parent = rightColumn
+
+-- Función para crear filas de stats
+local function createStatRow(parent, label, valorInicial, orden)
+    local row = Instance.new("Frame")
+    row.Name = label .. "Row"
+    row.Size = UDim2.new(1, 0, 0, 40)
+    row.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    row.BackgroundTransparency = 0.4
+    row.BorderSizePixel = 0
+    row.LayoutOrder = orden
+    row.ZIndex = 21
+    row.Parent = parent
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = row
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -15, 0, 18)
+    lbl.Position = UDim2.new(0, 10, 0, 4)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label
+    lbl.TextColor3 = Color3.fromRGB(180, 180, 190)
+    lbl.TextSize = 10
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 22
+    lbl.Parent = row
+
+    local val = Instance.new("TextLabel")
+    val.Name = "Valor"
+    val.Size = UDim2.new(1, -15, 0, 18)
+    val.Position = UDim2.new(0, 10, 0, 20)
+    val.BackgroundTransparency = 1
+    val.Text = tostring(valorInicial)
+    val.TextColor3 = Color3.fromRGB(255, 255, 255)
+    val.TextSize = 14
+    val.Font = Enum.Font.GothamBold
+    val.TextXAlignment = Enum.TextXAlignment.Left
+    val.ZIndex = 22
+    val.Parent = row
+
+    return val
+end
+
+local statsContainer = Instance.new("Frame")
+statsContainer.Name = "StatsContainer"
+statsContainer.Size = UDim2.new(1, -20, 1, -45)
+statsContainer.Position = UDim2.new(0, 10, 0, 40)
+statsContainer.BackgroundTransparency = 1
+statsContainer.ZIndex = 21
+statsContainer.Parent = rightColumn
+
+local statsLayout = Instance.new("UIListLayout")
+statsLayout.Padding = UDim.new(0, 6)
+statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+statsLayout.Parent = statsContainer
+
+local levelLabel = createStatRow(statsContainer, "Nivel", "0", 1)
+local bountyLabel = createStatRow(statsContainer, "Bounty", "0", 2)
+local conexionLabel = createStatRow(statsContainer, "Conexión", "0 ms", 3)
+local bountyGanadoLabel = createStatRow(statsContainer, "Bounty Ganado", "0", 4)
+local muertesLabel = createStatRow(statsContainer, "Muertes", "0", 5)
+local killsLabel = createStatRow(statsContainer, "Kills", "0", 6)
+
+-- ═══════════════════════════════════════════════════════════
+-- NOTIFICACIONES (abajo derecha)
+-- ═══════════════════════════════════════════════════════════
+local notifContainer = Instance.new("Frame")
+notifContainer.Name = "NotifContainer"
+notifContainer.Size = UDim2.new(0, 300, 1, 0)
+notifContainer.Position = UDim2.new(1, -320, 0, 0)
+notifContainer.BackgroundTransparency = 1
+notifContainer.ZIndex = 30
+notifContainer.Parent = screenGui
+
+local notifLayout = Instance.new("UIListLayout")
+notifLayout.Padding = UDim.new(0, 8)
+notifLayout.SortOrder = Enum.SortOrder.LayoutOrder
+notifLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+notifLayout.Parent = notifContainer
+
+local function showNotif(titulo, texto)
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(1, 0, 0, 60)
+    notif.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    notif.BorderSizePixel = 0
+    notif.ZIndex = 31
+    notif.Parent = notifContainer
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 10)
+    c.Parent = notif
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 1.5
+    stroke.Color = COLOR_GRIS
+    stroke.Parent = notif
+
+    local t = Instance.new("TextLabel")
+    t.Size = UDim2.new(1, -20, 0, 22)
+    t.Position = UDim2.new(0, 12, 0, 8)
+    t.BackgroundTransparency = 1
+    t.Text = titulo
+    t.TextColor3 = Color3.fromRGB(255, 255, 255)
+    t.TextSize = 13
+    t.Font = Enum.Font.GothamBold
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.ZIndex = 32
+    t.Parent = notif
+
+    local tx = Instance.new("TextLabel")
+    tx.Size = UDim2.new(1, -20, 0, 22)
+    tx.Position = UDim2.new(0, 12, 0, 30)
+    tx.BackgroundTransparency = 1
+    tx.Text = texto
+    tx.TextColor3 = Color3.fromRGB(200, 200, 210)
+    tx.TextSize = 12
+    tx.Font = Enum.Font.Gotham
+    tx.TextXAlignment = Enum.TextXAlignment.Left
+    tx.TextTruncate = Enum.TextTruncate.AtEnd
+    tx.ZIndex = 32
+    tx.Parent = notif
+
+    notif.Position = UDim2.new(1, 300, 0, 0)
+    TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 0, 0, 0)
+    }):Play()
+
+    task.delay(4, function()
+        TweenService:Create(notif, TweenInfo.new(0.3), {
+            Position = UDim2.new(1, 300, 0, 0)
+        }):Play()
+        task.wait(0.35)
+        notif:Destroy()
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════
+-- LÓGICA: TABS
+-- ═══════════════════════════════════════════════════════════
+local tabCombat = createTab("Combat", 1)
+local tabMovement = createTab("Movement", 2)
+local tabVisuals = createTab("Visuals", 3)
+local tabMisc = createTab("Misc", 4)
+
+tabsData = {
+    [tabCombat] = {titulo = "COMBAT", contenido = "Funciones de combate\nPróximamente..."},
+    [tabMovement] = {titulo = "MOVEMENT", contenido = "Funciones de movimiento\nPróximamente..."},
+    [tabVisuals] = {titulo = "VISUALS", contenido = "Funciones visuales\nPróximamente..."},
+    [tabMisc] = {titulo = "MISC", contenido = "Funciones varias\nPróximamente..."}
+}
+
+local centerTextLabel = Instance.new("TextLabel")
+centerTextLabel.Name = "CenterText"
+centerTextLabel.Size = UDim2.new(1, -20, 0, 200)
+centerTextLabel.Position = UDim2.new(0, 10, 0, 10)
+centerTextLabel.BackgroundTransparency = 1
+centerTextLabel.Text = "Selecciona una tab"
+centerTextLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+centerTextLabel.TextSize = 13
+centerTextLabel.Font = Enum.Font.Gotham
+centerTextLabel.TextXAlignment = Enum.TextXAlignment.Left
+centerTextLabel.TextYAlignment = Enum.TextYAlignment.Top
+centerTextLabel.TextWrapped = true
+centerTextLabel.ZIndex = 22
+centerTextLabel.Parent = centerContent
+
+local function selectTab(tab)
+    for t, _ in pairs(tabsData) do
+        TweenService:Create(t, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(45, 45, 55),
+            BackgroundTransparency = 0.3,
+            TextColor3 = Color3.fromRGB(200, 200, 210)
+        }):Play()
+    end
+    TweenService:Create(tab, TweenInfo.new(0.15), {
+        BackgroundColor3 = COLOR_GRIS,
+        BackgroundTransparency = 0,
+        TextColor3 = Color3.fromRGB(255, 255, 255)
+    }):Play()
+
+    centerTitle.Text = tabsData[tab].titulo
+    centerTextLabel.Text = tabsData[tab].contenido
+    activeTab = tab
+end
+
+for tab, _ in pairs(tabsData) do
+    tab.MouseButton1Click:Connect(function()
+        selectTab(tab)
+    end)
+end
+
+selectTab(tabCombat)
+
+-- ═══════════════════════════════════════════════════════════
+-- LÓGICA: ABRIR / CERRAR UI
+-- ═══════════════════════════════════════════════════════════
+local uiAbierta = false
+
+local function toggleUI()
+    uiAbierta = not uiAbierta
+    mainPanel.Visible = uiAbierta
+    if uiAbierta then
+        mainPanel.Size = UDim2.new(0, 0, 0, 0)
+        TweenService:Create(mainPanel, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 750, 0, 450)
+        }):Play()
+    end
+end
+
+floatBtn.MouseButton1Click:Connect(toggleUI)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.LeftAlt then
+        toggleUI()
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- CERRAR TODO EL SCRIPT
+-- ═══════════════════════════════════════════════════════════
+closeAllBtn.MouseButton1Click:Connect(function()
+    if screenGui then
+        screenGui:Destroy()
+    end
+    -- Intenta matar el hilo si el executor lo soporta
+    pcall(function()
+        if getgenv and getgenv().SniperTrisThread then
+            task.cancel(getgenv().SniperTrisThread)
+        end
+    end)
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- LÓGICA: STATS EN TIEMPO REAL
+-- ═══════════════════════════════════════════════════════════
+local function getLevel()
+    local lvl = 0
+    pcall(function()
+        if LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("Level") then
+            lvl = LocalPlayer.Data.Level.Value
+        end
+    end)
+    return lvl
+end
+
+local function getBounty()
+    local bounty = 0
+    pcall(function()
+        if LocalPlayer:FindFirstChild("leaderstats") then
+            for _, v in pairs(LocalPlayer.leaderstats:GetChildren()) do
+                if v.Name:lower():find("bounty") or v.Name:lower():find("beli") then
+                    bounty = v.Value
+                end
+            end
+        end
+    end)
+    return bounty
+end
+
+local function getPing()
+    local ping = 0
+    pcall(function()
+        ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
+    end)
+    return ping
+end
+
+-- Loop que actualiza stats cada 0.5s
+task.spawn(function()
+    while screenGui and screenGui.Parent do
+        task.wait(0.5)
+        pcall(function()
+            levelLabel.Text = tostring(getLevel())
+            local bountyActual = getBounty()
+            bountyLabel.Text = tostring(bountyActual)
+            conexionLabel.Text = tostring(getPing()) .. " ms"
+            bountyGanadoLabel.Text = tostring(stats.bountyGanado)
+            muertesLabel.Text = tostring(stats.muertes)
+            killsLabel.Text = tostring(stats.kills)
+
+            if bountyActual > ultimoBounty then
+                stats.bountyGanado = stats.bountyGanado + (bountyActual - ultimoBounty)
+            end
+            ultimoBounty = bountyActual
+        end)
+    end
+end)
+
+-- Detectar muerte / kill
+LocalPlayer.CharacterAdded:Connect(function()
+    if stats then
+        stats.muertes = stats.muertes + 1
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- NOTIFICACIONES INICIALES
+-- ═══════════════════════════════════════════════════════════
+task.wait(1)
+showNotif("Sniper Tris", "Presiona LEFT ALT para abrir la UI")
+task.wait(1.5)
+showNotif("Sniper Tris", "O haz click en el botón flotante 'S'")
