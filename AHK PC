@@ -154,12 +154,12 @@ clickSound.Volume = 0.4
 clickSound.Parent = SoundService
 
 local tabSound = Instance.new("Sound")
-tabSound.SoundId = "rbxassetid://6042053626"  -- click más suave para tabs
+tabSound.SoundId = "rbxassetid://6042053626"
 tabSound.Volume = 0.35
 tabSound.Parent = SoundService
 
 local switchSound = Instance.new("Sound")
-switchSound.SoundId = "rbxassetid://5234212358"  -- "pop" para switch
+switchSound.SoundId = "rbxassetid://5234212358"
 switchSound.Volume = 0.5
 switchSound.Parent = SoundService
 
@@ -240,17 +240,36 @@ loadConfig()
 -- 🎯 Helper: onPress (respuesta instantánea en celular)
 local function onPress(btn, callback)
     local pressed = false
+    local startTime = 0
     btn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 
            or input.UserInputType == Enum.UserInputType.Touch then
             pressed = true
+            startTime = tick()
         end
     end)
     btn.InputEnded:Connect(function(input)
         if (input.UserInputType == Enum.UserInputType.MouseButton1 
             or input.UserInputType == Enum.UserInputType.Touch) and pressed then
             pressed = false
+            -- Ejecuta al soltar (funciona igual rápido en celular)
             callback()
+        end
+    end)
+end
+
+-- 🎯 Helper: click instantáneo (InputBegan directo, sin esperar a soltar)
+local function onClickInstant(btn, callback)
+    local lastPress = 0
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 
+           or input.UserInputType == Enum.UserInputType.Touch then
+            -- Evita doble disparo si se dispara Mouse + Touch juntos
+            local now = tick()
+            if now - lastPress > 0.15 then
+                lastPress = now
+                callback()
+            end
         end
     end)
 end
@@ -262,9 +281,6 @@ local function addPressAnim(btn)
     end)
     btn.MouseButton1Up:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.08), { Size = UDim2.new(btn.Size.X.Scale, btn.Size.X.Offset + 2, btn.Size.Y.Scale, btn.Size.Y.Offset + 2) }):Play()
-    end)
-    btn.TouchTap:Connect(function()
-        playClick()
     end)
 end
 
@@ -520,7 +536,6 @@ floatStroke.Thickness = 1.5
 floatStroke.Color = currentTheme.Main
 floatStroke.Parent = floatBtn
 
--- ✨ Glow animado del floatBtn
 task.spawn(function()
     while floatStroke and floatStroke.Parent do
         pcall(function()
@@ -633,7 +648,6 @@ mainStroke.Color = currentTheme.Main
 mainStroke.Transparency = 0.1
 mainStroke.Parent = mainPanel
 
--- ✨ Glow pulsante en el borde del panel
 task.spawn(function()
     while mainStroke and mainStroke.Parent do
         pcall(function()
@@ -667,7 +681,6 @@ darkOverlay.BorderSizePixel = 0
 darkOverlay.ZIndex = 17
 darkOverlay.Parent = mainPanel
 
--- 🌟 PARTÍCULAS FLOTANTES
 local particleContainer = Instance.new("Frame")
 particleContainer.Size = UDim2.new(1, 0, 1, 0)
 particleContainer.BackgroundTransparency = 1
@@ -727,7 +740,6 @@ titleLabel.ZIndex = 21
 titleLabel.Parent = header
 applyFont(titleLabel, Enum.FontWeight.Bold)
 
--- 🌈 Gradiente animado en el título
 local titleGradient = Instance.new("UIGradient")
 titleGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, currentTheme.Main),
@@ -862,8 +874,6 @@ closeAllBtn.ZIndex = 22
 closeAllBtn.Parent = header
 applyFont(closeAllBtn, Enum.FontWeight.Bold)
 Instance.new("UICorner", closeAllBtn).CornerRadius = UDim.new(0, 6)
-closeAllBtn.MouseEnter:Connect(function() TweenService:Create(closeAllBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(220, 60, 60) }):Play() end)
-closeAllBtn.MouseLeave:Connect(function() TweenService:Create(closeAllBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(40, 40, 48) }):Play() end)
 
 local contentContainer = Instance.new("Frame")
 contentContainer.Size = UDim2.new(1, -16, 1, -50)
@@ -908,7 +918,6 @@ tabsLayout.Parent = tabsContainer
 local tabsData = {}
 local activeTab = nil
 
--- 🎯 Crea un tab con indicador pulsante
 local function createTab(nombre, layoutOrder)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 0, 30)
@@ -948,7 +957,6 @@ local function createTab(nombre, layoutOrder)
     s.Transparency = 0.3
     s.Parent = btn
 
-    -- 🔴 Punto indicador pulsante en el tab activo
     local dot = Instance.new("Frame")
     dot.Size = UDim2.new(0, 5, 0, 5)
     dot.Position = UDim2.new(1, -10, 0.5, -2.5)
@@ -1250,7 +1258,6 @@ for t, s in pairs(scrolls) do
     if t ~= tabHome then s.Visible = false end
 end
 
--- 🎯 SelectTab con sonido, ripple y animación de punto
 local function selectTab(tab)
     playTabSound()
     
@@ -1268,7 +1275,6 @@ local function selectTab(tab)
     for t, s in pairs(scrolls) do s.Visible = (t == tab) end
     activeTab = tab
     
-    -- Ripple effect
     local ripple = Instance.new("Frame")
     ripple.Size = UDim2.new(0, 0, 0, 0)
     ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -1287,7 +1293,6 @@ local function selectTab(tab)
     task.delay(0.4, function() if ripple then ripple:Destroy() end end)
 end
 
--- Punto pulsante en el tab activo
 task.spawn(function()
     while screenGui and screenGui.Parent do
         if activeTab and tabsData[activeTab] and tabsData[activeTab].dot then
@@ -1304,14 +1309,13 @@ task.spawn(function()
 end)
 
 for tab, _ in pairs(tabsData) do
-    tab.MouseButton1Click:Connect(function() selectTab(tab) end)
-    tab.TouchTap:Connect(function() end)  -- sonido lo maneja selectTab
+    onClickInstant(tab, function() selectTab(tab) end)
 end
 
 selectTab(tabHome)
 
 -- ═══════════════════════════════════════════════════════════
--- SETTINGS (rediseñado para CELULAR)
+-- SETTINGS
 -- ═══════════════════════════════════════════════════════════
 local settingsPanel = Instance.new("Frame")
 settingsPanel.Name = "SettingsPanel"
@@ -1350,7 +1354,6 @@ cfgDark.ZIndex = 51
 cfgDark.Parent = settingsPanel
 Instance.new("UICorner", cfgDark).CornerRadius = UDim.new(0, 14)
 
--- ✨ Partículas en Settings
 local cfgParticles = Instance.new("Frame")
 cfgParticles.Size = UDim2.new(1, 0, 1, 0)
 cfgParticles.BackgroundTransparency = 1
@@ -1596,7 +1599,7 @@ for i, key in ipairs(themeList) do
     
     addPressAnim(b)
     
-    b.MouseButton1Click:Connect(function()
+    onClickInstant(b, function()
         playClick()
         currentTheme = theme
         settingsStroke.Color = theme.Main
@@ -1700,12 +1703,16 @@ knobShadow.Color = Color3.fromRGB(0, 0, 0)
 knobShadow.Transparency = 0.7
 knobShadow.Parent = switchKnob
 
+-- 🔥 switchBtn cubre todo el switch, por encima de todo
 local switchBtn = Instance.new("TextButton")
 switchBtn.Size = UDim2.new(1, 0, 1, 0)
+switchBtn.Position = UDim2.new(0, 0, 0, 0)
 switchBtn.BackgroundTransparency = 1
 switchBtn.Text = ""
-switchBtn.ZIndex = 65
-switchBtn.Parent = switchBg
+switchBtn.ZIndex = 70  -- ⬆️ MÁS ALTO que el knob (64)
+switchBtn.Parent = switchRow  -- 🔥 Ahora es hijo del row, no del switchBg
+switchBtn.Size = UDim2.new(0, 54, 0, 28)
+switchBtn.Position = UDim2.new(1, -54, 0, 3)
 
 local function toggleSwitch()
     playSwitchSound()
@@ -1719,8 +1726,8 @@ local function toggleSwitch()
     saveConfig()
 end
 
-switchBtn.MouseButton1Click:Connect(toggleSwitch)
-switchBtn.TouchTap:Connect(toggleSwitch)
+-- 🔥 onClickInstant para respuesta al instante en celular
+onClickInstant(switchBtn, toggleSwitch)
 
 local infoContent, infoIcon = createSection("INFORMACIÓN", "📜", 3)
 
@@ -1774,7 +1781,7 @@ saveGlow.Parent = saveCfgBtn
 
 addPressAnim(saveCfgBtn)
 
-saveCfgBtn.MouseButton1Click:Connect(function()
+onClickInstant(saveCfgBtn, function()
     playClick()
     saveConfig()
     showNotif("LUA+C", "Config guardada correctamente")
@@ -1797,7 +1804,7 @@ Instance.new("UICorner", resetCfgBtn).CornerRadius = UDim.new(0, 8)
 
 addPressAnim(resetCfgBtn)
 
-resetCfgBtn.MouseButton1Click:Connect(function()
+onClickInstant(resetCfgBtn, function()
     playClick()
     currentTheme = ThemeColors.RosaNeon
     notifEnabled = true
@@ -1818,7 +1825,7 @@ creditsLabel.ZIndex = 61
 creditsLabel.Parent = cfgScroll
 applyFont(creditsLabel, Enum.FontWeight.Regular)
 
--- ✨ onPress ahora instantáneo en celular
+-- 🔥 onPress para settingsBtn (respuesta al soltar)
 onPress(settingsBtn, function()
     playClick()
     if settingsPanel.Visible then
@@ -1837,11 +1844,31 @@ onPress(cfgClose, function()
     settingsPanel.Visible = false
 end)
 
-onPress(discordBtn, function() if fSetClipboard then fSetClipboard(LINK_DISCORD) end end)
-onPress(tiktokBtn, function() if fSetClipboard then fSetClipboard(LINK_TIKTOK) end end)
+-- 🔥 ICONOS de Discord y TikTok (arreglados)
+local function copyDiscord()
+    playClick()
+    if fSetClipboard then 
+        fSetClipboard(LINK_DISCORD)
+        showNotif("LUA+C", "Discord copiado!")
+    end
+end
+
+local function copyTikTok()
+    playClick()
+    if fSetClipboard then 
+        fSetClipboard(LINK_TIKTOK)
+        showNotif("LUA+C", "TikTok copiado!")
+    end
+end
+
+-- Uso MouseButton1Click + TouchTap (funciona en PC y celular)
+discordBtn.MouseButton1Click:Connect(copyDiscord)
+discordBtn.TouchTap:Connect(copyDiscord)
+tiktokBtn.MouseButton1Click:Connect(copyTikTok)
+tiktokBtn.TouchTap:Connect(copyTikTok)
 
 -- ═══════════════════════════════════════════════════════════
--- TOGGLE UI + MINIMIZE (con onPress para respuesta instantánea)
+-- TOGGLE UI + MINIMIZE
 -- ═══════════════════════════════════════════════════════════
 local uiAbierta = false
 
