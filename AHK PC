@@ -327,20 +327,29 @@ local function saveKey(key)
 end
 
 local function loadSavedKey()
-    local ok, result = pcall(function()
-        if readfile and isfile and isfile("luaC_key.json") then
-            local data = HttpService:JSONDecode(readfile("luaC_key.json"))
-            if data and data.key and data.expire and os.time() < data.expire then return data.key end
+    local success, result = pcall(function()
+        if not (readfile and isfile and isfile("luaC_key.json")) then return nil end
+        local contenido = readfile("luaC_key.json")
+        if not contenido or contenido == "" then return nil end
+        local ok2, data = pcall(function() return HttpService:JSONDecode(contenido) end)
+        if not ok2 or not data then
+            pcall(function() if delfile then delfile("luaC_key.json") end end)
+            return nil
+        end
+        if type(data) == "table" and data.key and data.expire and tonumber(data.expire) and os.time() < tonumber(data.expire) then
+            return data.key
         end
         return nil
     end)
-    if ok and result then return result end
+    if success and result then return result end
     local memData = nil
     pcall(function()
         if getgenv then memData = getgenv()[KEY_MEMORY_KEY] end
         if not memData and _G then memData = _G[KEY_MEMORY_KEY] end
     end)
-    if memData and memData.key and memData.expire and os.time() < memData.expire then return memData.key end
+    if memData and type(memData) == "table" and memData.key and memData.expire and os.time() < memData.expire then
+        return memData.key
+    end
     return nil
 end
 
@@ -443,7 +452,8 @@ keyPanel.BackgroundColor3 = Color3.fromRGB(10, 15, 30)
 keyPanel.BorderSizePixel = 0
 keyPanel.ClipsDescendants = true
 keyPanel.ZIndex = 2
-keyPanel.Parent = keyScreenGuiInstance.new("UICorner", keyPanel).CornerRadius = UDim.new(0, 14)
+keyPanel.Parent = keyScreenGui
+Instance.new("UICorner", keyPanel).CornerRadius = UDim.new(0, 14)
 
 local keyStroke = Instance.new("UIStroke")
 keyStroke.Thickness = 2
