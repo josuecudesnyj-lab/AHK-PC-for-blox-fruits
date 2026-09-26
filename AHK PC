@@ -11,14 +11,17 @@ repeat task.wait(1) until game:IsLoaded();
 local requestSending = false;
 local fSetClipboard, fRequest, fStringChar, fToString, fStringSub, fOsTime, fMathRandom, fMathFloor, fGetHwid = setclipboard or toclipboard, request or http_request or syn_request, string.char, tostring, string.sub, os.time, math.random, math.floor, gethwid or function() return game:GetService("Players").LocalPlayer.UserId end
 local cachedLink, cachedTime = "", 0;
+
 local function safeRequest(opts)
     local ok, res = pcall(function() return fRequest(opts) end)
     if ok and res then return res end
     return { StatusCode = 0, Body = "{}" }
 end
+
 local host = "https://api.platoboost.com";
 local hostResponse = safeRequest({Url = host .. "/public/connectivity", Method = "GET"});
 if hostResponse.StatusCode ~= 200 and hostResponse.StatusCode ~= 429 then host = "https://api.platoboost.net"; end;
+
 function cacheLink()
     if cachedTime + (10*60) < fOsTime() then
         local response = safeRequest({Url = host .. "/public/start",Method = "POST",Body = lEncode({service = service,identifier = lDigest(fGetHwid())}),Headers = {["Content-Type"] = "application/json"}});
@@ -145,7 +148,6 @@ local function sendWebhook(url, data)
     end)
 end
 
--- 🔊 SONIDOS
 local clickSound = Instance.new("Sound")
 clickSound.SoundId = "rbxassetid://9118823101"
 clickSound.Volume = 0.4
@@ -237,12 +239,10 @@ loadConfig()
 
 local function onPress(btn, callback)
     local pressed = false
-    local startTime = 0
     btn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 
            or input.UserInputType == Enum.UserInputType.Touch then
             pressed = true
-            startTime = tick()
         end
     end)
     btn.InputEnded:Connect(function(input)
@@ -336,7 +336,8 @@ keyTitle.BackgroundTransparency = 1
 keyTitle.Text = "lua+C"
 keyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 keyTitle.TextSize = 18
-keyTitle.Font = Enum.Font.GothamBoldkeyTitle.TextXAlignment = Enum.TextXAlignment.Left
+keyTitle.Font = Enum.Font.GothamBold
+keyTitle.TextXAlignment = Enum.TextXAlignment.Left
 keyTitle.ZIndex = 6
 keyTitle.Parent = keyPanel
 applyFont(keyTitle, Enum.FontWeight.Bold)
@@ -1696,14 +1697,12 @@ knobShadow.Transparency = 0.7
 knobShadow.Parent = switchKnob
 
 local switchBtn = Instance.new("TextButton")
-switchBtn.Size = UDim2.new(1, 0, 1, 0)
-switchBtn.Position = UDim2.new(0, 0, 0, 0)
+switchBtn.Size = UDim2.new(0, 54, 0, 28)
+switchBtn.Position = UDim2.new(1, -54, 0, 3)
 switchBtn.BackgroundTransparency = 1
 switchBtn.Text = ""
 switchBtn.ZIndex = 70
 switchBtn.Parent = switchRow
-switchBtn.Size = UDim2.new(0, 54, 0, 28)
-switchBtn.Position = UDim2.new(1, -54, 0, 3)
 
 local function toggleSwitch()
     playSwitchSound()
@@ -1739,7 +1738,8 @@ applyFont(infoText, Enum.FontWeight.Regular)
 local actionSection = Instance.new("Frame")
 actionSection.Size = UDim2.new(1, 0, 0, 84)
 actionSection.BackgroundTransparency = 1
-actionSection.LayoutOrder = 4actionSection.ZIndex = 61
+actionSection.LayoutOrder = 4
+actionSection.ZIndex = 61
 actionSection.Parent = cfgScroll
 
 local actionLayout = Instance.new("UIListLayout")
