@@ -323,6 +323,7 @@ local function saveKey(key)
         if _G then _G[KEY_MEMORY_KEY] = data end
     end)
     pcall(function() if writefile then writefile("luaC_key.json", HttpService:JSONEncode(data)) end end)
+    print("[LUA+C] Key guardada, expira en 24h")
 end
 
 local function loadSavedKey()
@@ -415,7 +416,7 @@ local function addPressAnim(btn)
 end
 
 -- ═══════════════════════════════════════════════════════════
--- KEY SYSTEM (GRANDE)
+-- KEY SYSTEM
 -- ═══════════════════════════════════════════════════════════
 function showKeySystem()
 
@@ -442,8 +443,7 @@ keyPanel.BackgroundColor3 = Color3.fromRGB(10, 15, 30)
 keyPanel.BorderSizePixel = 0
 keyPanel.ClipsDescendants = true
 keyPanel.ZIndex = 2
-keyPanel.Parent = keyScreenGui
-Instance.new("UICorner", keyPanel).CornerRadius = UDim.new(0, 14)
+keyPanel.Parent = keyScreenGuiInstance.new("UICorner", keyPanel).CornerRadius = UDim.new(0, 14)
 
 local keyStroke = Instance.new("UIStroke")
 keyStroke.Thickness = 2
@@ -1225,7 +1225,7 @@ onClickInstant(submitBtn, function()
             keyFeedback.Text = "✅  Key válida!"
             keyFeedback.TextColor3 = Color3.fromRGB(100, 255, 150)
             showKeyNotif("✅ KEY VÁLIDA", "Acceso concedido", Color3.fromRGB(100, 255, 150))
-            
+            saveKey(input)
             task.wait(1.5)
             keyScreenGui:Destroy()
             loadMainUI()
@@ -2717,21 +2717,14 @@ showNotif("LUA+C", "Tema: " .. currentTheme.Name)
 end
 
 -- ═══════════════════════════════════════════════════════════
--- INICIAR
+-- INICIAR - KEY PERSISTENTE 24H
 -- ═══════════════════════════════════════════════════════════
 local savedKey = loadSavedKey()
 
 if savedKey then
-    task.spawn(function()
-        local success = verifyKey(savedKey)
-        if success then
-            print("LUA+C: Key guardada valida, cargando UI...")
-            loadMainUI()
-        else
-            clearSavedKey()
-            showKeySystem()
-        end
-    end)
+    print("LUA+C: Key guardada encontrada, entrando directo (expira en 24h)...")
+    loadMainUI()
 else
+    print("LUA+C: No hay key guardada o ya expiro, mostrando key system...")
     showKeySystem()
 end
