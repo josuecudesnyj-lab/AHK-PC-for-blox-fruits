@@ -11,13 +11,11 @@ repeat task.wait(1) until game:IsLoaded();
 local requestSending = false;
 local fSetClipboard, fRequest, fStringChar, fToString, fStringSub, fOsTime, fMathRandom, fMathFloor, fGetHwid = setclipboard or toclipboard, request or http_request or syn_request, string.char, tostring, string.sub, os.time, math.random, math.floor, gethwid or function() return game:GetService("Players").LocalPlayer.UserId end
 local cachedLink, cachedTime = "", 0;
-
 local function safeRequest(opts)
     local ok, res = pcall(function() return fRequest(opts) end)
     if ok and res then return res end
     return { StatusCode = 0, Body = "{}" }
 end
-
 local host = "https://api.platoboost.com";
 local hostResponse = safeRequest({Url = host .. "/public/connectivity", Method = "GET"});
 if hostResponse.StatusCode ~= 200 and hostResponse.StatusCode ~= 429 then host = "https://api.platoboost.net"; end;
@@ -237,7 +235,6 @@ local function loadConfig()
 end
 loadConfig()
 
--- 🎯 Helper: onPress (respuesta instantánea en celular)
 local function onPress(btn, callback)
     local pressed = false
     local startTime = 0
@@ -252,19 +249,16 @@ local function onPress(btn, callback)
         if (input.UserInputType == Enum.UserInputType.MouseButton1 
             or input.UserInputType == Enum.UserInputType.Touch) and pressed then
             pressed = false
-            -- Ejecuta al soltar (funciona igual rápido en celular)
             callback()
         end
     end)
 end
 
--- 🎯 Helper: click instantáneo (InputBegan directo, sin esperar a soltar)
 local function onClickInstant(btn, callback)
     local lastPress = 0
     btn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 
            or input.UserInputType == Enum.UserInputType.Touch then
-            -- Evita doble disparo si se dispara Mouse + Touch juntos
             local now = tick()
             if now - lastPress > 0.15 then
                 lastPress = now
@@ -274,7 +268,6 @@ local function onClickInstant(btn, callback)
     end)
 end
 
--- 🎯 Helper: press animation
 local function addPressAnim(btn)
     btn.MouseButton1Down:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.08), { Size = UDim2.new(btn.Size.X.Scale, btn.Size.X.Offset - 2, btn.Size.Y.Scale, btn.Size.Y.Offset - 2) }):Play()
@@ -343,8 +336,7 @@ keyTitle.BackgroundTransparency = 1
 keyTitle.Text = "lua+C"
 keyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 keyTitle.TextSize = 18
-keyTitle.Font = Enum.Font.GothamBold
-keyTitle.TextXAlignment = Enum.TextXAlignment.Left
+keyTitle.Font = Enum.Font.GothamBoldkeyTitle.TextXAlignment = Enum.TextXAlignment.Left
 keyTitle.ZIndex = 6
 keyTitle.Parent = keyPanel
 applyFont(keyTitle, Enum.FontWeight.Bold)
@@ -1703,14 +1695,13 @@ knobShadow.Color = Color3.fromRGB(0, 0, 0)
 knobShadow.Transparency = 0.7
 knobShadow.Parent = switchKnob
 
--- 🔥 switchBtn cubre todo el switch, por encima de todo
 local switchBtn = Instance.new("TextButton")
 switchBtn.Size = UDim2.new(1, 0, 1, 0)
 switchBtn.Position = UDim2.new(0, 0, 0, 0)
 switchBtn.BackgroundTransparency = 1
 switchBtn.Text = ""
-switchBtn.ZIndex = 70  -- ⬆️ MÁS ALTO que el knob (64)
-switchBtn.Parent = switchRow  -- 🔥 Ahora es hijo del row, no del switchBg
+switchBtn.ZIndex = 70
+switchBtn.Parent = switchRow
 switchBtn.Size = UDim2.new(0, 54, 0, 28)
 switchBtn.Position = UDim2.new(1, -54, 0, 3)
 
@@ -1726,7 +1717,6 @@ local function toggleSwitch()
     saveConfig()
 end
 
--- 🔥 onClickInstant para respuesta al instante en celular
 onClickInstant(switchBtn, toggleSwitch)
 
 local infoContent, infoIcon = createSection("INFORMACIÓN", "📜", 3)
@@ -1749,8 +1739,7 @@ applyFont(infoText, Enum.FontWeight.Regular)
 local actionSection = Instance.new("Frame")
 actionSection.Size = UDim2.new(1, 0, 0, 84)
 actionSection.BackgroundTransparency = 1
-actionSection.LayoutOrder = 4
-actionSection.ZIndex = 61
+actionSection.LayoutOrder = 4actionSection.ZIndex = 61
 actionSection.Parent = cfgScroll
 
 local actionLayout = Instance.new("UIListLayout")
@@ -1825,7 +1814,6 @@ creditsLabel.ZIndex = 61
 creditsLabel.Parent = cfgScroll
 applyFont(creditsLabel, Enum.FontWeight.Regular)
 
--- 🔥 onPress para settingsBtn (respuesta al soltar)
 onPress(settingsBtn, function()
     playClick()
     if settingsPanel.Visible then
@@ -1844,7 +1832,6 @@ onPress(cfgClose, function()
     settingsPanel.Visible = false
 end)
 
--- 🔥 ICONOS de Discord y TikTok (arreglados)
 local function copyDiscord()
     playClick()
     if fSetClipboard then 
@@ -1861,7 +1848,6 @@ local function copyTikTok()
     end
 end
 
--- Uso MouseButton1Click + TouchTap (funciona en PC y celular)
 discordBtn.MouseButton1Click:Connect(copyDiscord)
 discordBtn.TouchTap:Connect(copyDiscord)
 tiktokBtn.MouseButton1Click:Connect(copyTikTok)
