@@ -145,7 +145,7 @@ local function sendWebhook(url, data)
 end
 
 -- ═══════════════════════════════════════════════════════════
--- SISTEMA DE GUARDADO DE KEY (24h) - PARCHADO
+-- SISTEMA DE GUARDADO DE KEY (24h)
 -- ═══════════════════════════════════════════════════════════
 local KEY_DURATION = 24 * 60 * 60
 local KEY_MEMORY_KEY = "luaC_saved_key"
@@ -203,26 +203,6 @@ local function clearSavedKey()
             delfile("luaC_key.json")
         end
     end)
-end
-
--- ═══════════════════════════════════════════════════════════
--- DECIDIR: cargar UI directo o pedir key
--- ═══════════════════════════════════════════════════════════
-local savedKey = loadSavedKey()
-
-if savedKey then
-    task.spawn(function()
-        local success = verifyKey(savedKey)
-        if success then
-            print("LUA+C: Key guardada válida, cargando UI...")
-            loadMainUI()
-        else
-            clearSavedKey()
-            showKeySystem()
-        end
-    end)
-else
-    showKeySystem()
 end
 
 -- ═══════════════════════════════════════════════════════════
@@ -498,7 +478,7 @@ tiktokIcon.MouseButton1Click:Connect(function()
     if fSetClipboard then fSetClipboard(LINK_TIKTOK) end
 end)
 
-end -- fin showKeySystem
+end
 
 -- ═══════════════════════════════════════════════════════════
 -- FUNCIÓN PRINCIPAL DE LA UI
@@ -1265,4 +1245,24 @@ end
 task.wait(1.5)
 showNotif("LUA+C", "Home / Combat / Glitch / Soru / Appearance / Misc")
 
-end -- fin loadMainUI
+end
+
+-- ═══════════════════════════════════════════════════════════
+-- INICIAR
+-- ═══════════════════════════════════════════════════════════
+local savedKey = loadSavedKey()
+
+if savedKey then
+    task.spawn(function()
+        local success = verifyKey(savedKey)
+        if success then
+            print("LUA+C: Key guardada válida, cargando UI...")
+            loadMainUI()
+        else
+            clearSavedKey()
+            showKeySystem()
+        end
+    end)
+else
+    showKeySystem()
+end
