@@ -1,13 +1,17 @@
 -- ═══════════════════════════════════════════════════════════
--- PLATOBOOST PARCHADO
+-- 🔐 PLATOBOOST LIBRARY (integrada - multi-host fallback)
 -- ═══════════════════════════════════════════════════════════
 local a=2^32;local b=a-1;local function c(d,e)local f,g=0,1;while d~=0 or e~=0 do local h,i=d%2,e%2;local j=(h+i)%2;f=f+j*g;d=math.floor(d/2)e=math.floor(e/2)g=g*2 end;return f%a end;local function k(d,e,l,...)local m;if e then d=d%a;e=e%a;m=c(d,e)if l then m=k(m,l,...)end;return m elseif d then return d%a else return 0 end end;local function n(d,e,l,...)local m;if e then d=d%a;e=e%a;m=(d+e-c(d,e))/2;if l then m=n(m,l,...)end;return m elseif d then return d%a else return b end end;local function o(p)return b-p end;local function q(d,r)if r<0 then return lshift(d,-r)end;return math.floor(d%2^32/2^r)end;local function s(p,r)if r>31 or r<-31 then return 0 end;return q(p%a,r)end;local function lshift(d,r)if r<0 then return s(d,-r)end;return d*2^r%2^32 end;local function t(p,r)p=p%a;r=r%32;local u=n(p,2^r-1)return s(p,r)+lshift(u,32-r)end;local v={0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2}local function w(x)return string.gsub(x,".",function(l)return string.format("%02x",string.byte(l))end)end;local function y(z,A)local x=""for B=1,A do local C=z%256;x=string.char(C)..x;z=(z-C)/256 end;return x end;local function D(x,B)local A=0;for B=B,B+3 do A=A*256+string.byte(x,B)end;return A end;local function E(F,G)local H=64-(G+9)%64;G=y(8*G,8)F=F.."\128"..string.rep("\0",H)..G;assert(#F%64==0)return F end;local function I(J)J[1]=0x6a09e667;J[2]=0xbb67ae85;J[3]=0x3c6ef372;J[4]=0xa54ff53a;J[5]=0x510e527f;J[6]=0x9b05688c;J[7]=0x1f83d9ab;J[8]=0x5be0cd19;return J end;local function K(F,B,J)local L={}for M=1,16 do L[M]=D(F,B+(M-1)*4)end;for M=17,64 do local N=L[M-15]local O=k(t(N,7),t(N,18),s(N,3))N=L[M-2]L[M]=(L[M-16]+O+L[M-7]+k(t(N,17),t(N,19),s(N,10)))%a end;local d,e,l,P,Q,R,S,T=J[1],J[2],J[3],J[4],J[5],J[6],J[7],J[8]for B=1,64 do local O=k(t(d,2),t(d,13),t(d,22))local U=k(n(d,e),n(d,l),n(e,l))local V=(O+U)%a;local W=k(t(Q,6),t(Q,11),t(Q,25))local X=k(n(Q,R),n(o(Q),S))local Y=(T+W+X+v[B]+L[B])%a;T=S;S=R;R=Q;Q=(P+Y)%a;P=l;l=e;e=d;d=(Y+V)%a end;J[1]=(J[1]+d)%a;J[2]=(J[2]+e)%a;J[3]=(J[3]+l)%a;J[4]=(J[4]+P)%a;J[5]=(J[5]+Q)%a;J[6]=(J[6]+R)%a;J[7]=(J[7]+S)%a;J[8]=(J[8]+T)%a end;local function Z(F)F=E(F,#F)local J=I({})for B=1,#F,64 do K(F,B,J)end;return w(y(J[1],4)..y(J[2],4)..y(J[3],4)..y(J[4],4)..y(J[5],4)..y(J[6],4)..y(J[7],4)..y(J[8],4))end;local e;local l={["\\"]="\\",["\""]="\"",["\b"]="b",["\f"]="f",["\n"]="n",["\r"]="r",["\t"]="t"}local P={["/"]="/"}for Q,R in pairs(l)do P[R]=Q end;local S=function(T)return"\\"..(l[T]or string.format("u%04x",T:byte()))end;local B=function(M)return"null"end;local v=function(M,z)local _={}z=z or{}if z[M]then error("circular reference")end;z[M]=true;if rawget(M,1)~=nil or next(M)==nil then local A=0;for Q in pairs(M)do if type(Q)~="number"then error("invalid table: mixed or invalid key types")end;A=A+1 end;if A~=#M then error("invalid table: sparse array")end;for a0,R in ipairs(M)do table.insert(_,e(R,z))end;z[M]=nil;return"["..table.concat(_,",").."]"else for Q,R in pairs(M)do if type(Q)~="string"then error("invalid table: mixed or invalid key types")end;table.insert(_,e(Q,z)..":"..e(R,z))end;z[M]=nil;return"{"..table.concat(_,",").."}"end end;local g=function(M)return'"'..M:gsub('[%z\1-\31\\"]',S)..'"'end;local a1=function(M)if M~=M or M<=-math.huge or M>=math.huge then error("unexpected number value '"..tostring(M).."'")end;return string.format("%.14g",M)end;local j={["nil"]=B,["table"]=v,["string"]=g,["number"]=a1,["boolean"]=tostring}e=function(M,z)local x=type(M)local a2=j[x]if a2 then return a2(M,z)end;error("unexpected type '"..x.."'")end;local a3=function(M)return e(M)end;local a4;local N=function(...)local _={}for a0=1,select("#",...)do _[select(a0,...)]=true end;return _ end;local L=N(" ","\t","\r","\n")local p=N(" ","\t","\r","\n","]","}",",")local a5=N("\\","/",'"',"b","f","n","r","t","u")local m=N("true","false","null")local a6={["true"]=true,["false"]=false,["null"]=nil}local a7=function(a8,a9,aa,ab)for a0=a9,#a8 do if aa[a8:sub(a0,a0)]~=ab then return a0 end end;return#a8+1 end;local ac=function(a8,a9,J)local ad=1;local ae=1;for a0=1,a9-1 do ae=ae+1;if a8:sub(a0,a0)=="\n"then ad=ad+1;ae=1 end end;error(string.format("%s at line %d col %d",J,ad,ae))end;local af=function(A)local a2=math.floor;if A<=0x7f then return string.char(A)elseif A<=0x7ff then return string.char(a2(A/64)+192,A%64+128)elseif A<=0xffff then return string.char(a2(A/4096)+224,a2(A%4096/64)+128,A%64+128)elseif A<=0x10ffff then return string.char(a2(A/262144)+240,a2(A%262144/4096)+128,a2(A%4096/64)+128,A%64+128)end;error(string.format("invalid unicode codepoint '%x'",A))end;local ag=function(ah)local ai=tonumber(ah:sub(1,4),16)local aj=tonumber(ah:sub(7,10),16)if aj then return af((ai-0xd800)*0x400+aj-0xdc00+0x10000)else return af(ai)end end;local ak=function(a8,a0)local _=""local al=a0+1;local Q=al;while al<=#a8 do local am=a8:byte(al)if am<32 then ac(a8,al,"control character in string")elseif am==92 then _=_..a8:sub(Q,al-1)al=al+1;local T=a8:sub(al,al)if T=="u"then local an=a8:match("^[dD][89aAbB]%x%x\\u%x%x%x%x",al+1)or a8:match("^%x%x%x%x",al+1)or ac(a8,al-1,"invalid unicode escape in string")_=_..ag(an)al=al+#an else if not a5[T]then ac(a8,al-1,"invalid escape char '"..T.."' in string")end;_=_..P[T]end;Q=al+1 elseif am==34 then _=_..a8:sub(Q,al-1)return _,al+1 end;al=al+1 end;ac(a8,a0,"expected closing quote for string")end;local ao=function(a8,a0)local am=a7(a8,a0,p)local ah=a8:sub(a0,am-1)local A=tonumber(ah)if not A then ac(a8,a0,"invalid number '"..ah.."'")end;return A,am end;local ap=function(a8,a0)local am=a7(a8,a0,p)local aq=a8:sub(a0,am-1)if not m[aq]then ac(a8,a0,"invalid literal '"..aq.."'")end;return a6[aq],am end;local ar=function(a8,a0)local _={}local A=1;a0=a0+1;while 1 do local am;a0=a7(a8,a0,L,true)if a8:sub(a0,a0)=="]"then a0=a0+1;break end;am,a0=a4(a8,a0)_[A]=am;A=A+1;a0=a7(a8,a0,L,true)local as=a8:sub(a0,a0)a0=a0+1;if as=="]"then break end;if as~=","then ac(a8,a0,"expected ']' or ','")end end;return _,a0 end;local at=function(a8,a0)local _={}a0=a0+1;while 1 do local au,M;a0=a7(a8,a0,L,true)if a8:sub(a0,a0)=="}"then a0=a0+1;break end;if a8:sub(a0,a0)~='"'then ac(a8,a0,"expected string for key")end;au,a0=a4(a8,a0)a0=a7(a8,a0,L,true)if a8:sub(a0,a0)~=":"then ac(a8,a0,"expected ':' after key")end;a0=a7(a8,a0+1,L,true)M,a0=a4(a8,a0)_[au]=M;a0=a7(a8,a0,L,true)local as=a8:sub(a0,a0)a0=a0+1;if as=="}"then break end;if as~=","then ac(a8,a0,"expected '}' or ','")end end;return _,a0 end;local av={['"']=ak,["0"]=ao,["1"]=ao,["2"]=ao,["3"]=ao,["4"]=ao,["5"]=ao,["6"]=ao,["7"]=ao,["8"]=ao,["9"]=ao,["-"]=ao,["t"]=ap,["f"]=ap,["n"]=ap,["["]=ar,["{"]=at}a4=function(a8,a9)local as=a8:sub(a9,a9)local a2=av[as]if a2 then return a2(a8,a9)end;ac(a8,a9,"unexpected character '"..as.."'")end;local aw=function(a8)if type(a8)~="string"then error("expected argument of type string, got "..type(a8))end;local _,a9=a4(a8,a7(a8,1,L,true))a9=a7(a8,a9,L,true)if a9<=#a8 then ac(a8,a9,"trailing garbage")end;return _ end;
 local lEncode, lDecode, lDigest = a3, aw, Z;
-local service = 32536;
-local secret = "a472a6f7-76f2-4cad-bfb1-d2d0e4fe53ec";
-local useNonce = true;
+
+local PBservice = 32536;
+local PBsecret = "a472a6f7-76f2-4cad-bfb1-d2d0e4fe53ec";
+local PBuseNonce = true;
+
 local onMessage = function(message) end;
+
 repeat task.wait(1) until game:IsLoaded();
+
 local requestSending = false;
 local fSetClipboard, fRequest, fStringChar, fToString, fStringSub, fOsTime, fMathRandom, fMathFloor, fGetHwid = setclipboard or toclipboard, request or http_request or syn_request, string.char, tostring, string.sub, os.time, math.random, math.floor, gethwid or function() return game:GetService("Players").LocalPlayer.UserId end
 local cachedLink, cachedTime = "", 0;
@@ -18,77 +22,207 @@ local function safeRequest(opts)
     return { StatusCode = 0, Body = "{}" }
 end
 
-local host = "https://api.platoboost.com";
-local hostResponse = safeRequest({Url = host .. "/public/connectivity", Method = "GET"});
-if hostResponse.StatusCode ~= 200 and hostResponse.StatusCode ~= 429 then host = "https://api.platoboost.net"; end;
+local PBhosts = {
+    "https://api.platoboost.com",
+    "https://api.platoboost.net",
+    "https://platoboost.com",
+    "https://www.platoboost.com",
+    "https://api.platoboost.xyz",
+    "https://api.platoboost.io",
+    "https://api.platoboost.org",
+    "https://api.platoboost.co"
+}
+local PBhost = nil
+for _, testHost in ipairs(PBhosts) do
+    local res = safeRequest({Url = testHost .. "/public/connectivity", Method = "GET"})
+    if res and (res.StatusCode == 200 or res.StatusCode == 429 or res.StatusCode == 404 or res.StatusCode == 403) then
+        PBhost = testHost
+        print("[Platoboost] Host OK: " .. testHost .. " (" .. tostring(res.StatusCode) .. ")")
+        break
+    else
+        print("[Platoboost] Host FALLO: " .. testHost .. " (" .. tostring(res.StatusCode) .. ")")
+    end
+end
+if not PBhost then
+    PBhost = "https://api.platoboost.com"
+    print("[Platoboost] Ningun host respondio, usando default (probablemente falle)")
+end
 
 function cacheLink()
     if cachedTime + (10*60) < fOsTime() then
-        local response = safeRequest({Url = host .. "/public/start",Method = "POST",Body = lEncode({service = service,identifier = lDigest(fGetHwid())}),Headers = {["Content-Type"] = "application/json"}});
+        local response = safeRequest({Url = PBhost .. "/public/start", Method = "POST", Body = lEncode({service = PBservice, identifier = lDigest(fGetHwid())}), Headers = { ["Content-Type"] = "application/json" }});
         if response.StatusCode == 200 then
             local decoded = lDecode(response.Body);
-            if decoded.success == true then cachedLink = decoded.data.url;cachedTime = fOsTime();return true, cachedLink; else onMessage(decoded.message);return false, decoded.message; end
-        elseif response.StatusCode == 429 then local msg = "you are being rate limited, please wait 20 seconds and try again.";onMessage(msg);return false, msg; end
-        local msg = "Failed to cache link.";onMessage(msg);return false, msg;
-    else return true, cachedLink; end
+            if decoded.success == true then
+                cachedLink = decoded.data.url;
+                cachedTime = fOsTime();
+                return true, cachedLink;
+            else
+                onMessage(decoded.message);
+                return false, decoded.message;
+            end
+        elseif response.StatusCode == 429 then
+            local msg = "you are being rate limited, please wait 20 seconds and try again.";
+            onMessage(msg);
+            return false, msg;
+        end
+        local msg = "Failed to cache link.";
+        onMessage(msg);
+        return false, msg;
+    else
+        return true, cachedLink;
+    end
 end
+
 cacheLink();
-local generateNonce = function() local str = "" for _ = 1, 16 do str = str .. fStringChar(fMathFloor(fMathRandom() * (122 - 97 + 1)) + 97) end return str end
-for _ = 1, 5 do local oNonce = generateNonce();task.wait(0.2) if generateNonce() == oNonce then local msg = "platoboost nonce error.";onMessage(msg);error(msg); end end
-local copyLink = function() local success, link = cacheLink();if success then fSetClipboard(link);end end
+
+local generateNonce = function()
+    local str = ""
+    for _ = 1, 16 do
+        str = str .. fStringChar(fMathFloor(fMathRandom() * (122 - 97 + 1)) + 97)
+    end
+    return str
+end
+
+for _ = 1, 5 do
+    local oNonce = generateNonce();
+    task.wait(0.2)
+    if generateNonce() == oNonce then
+        local msg = "platoboost nonce error.";
+        onMessage(msg);
+        error(msg);
+    end
+end
+
+local copyLink = function()
+    local success, link = cacheLink();
+    if success then
+        fSetClipboard(link);
+    end
+    return success, link;
+end
+
 local redeemKey = function(key)
     local nonce = generateNonce();
-    local endpoint = host .. "/public/redeem/" .. fToString(service);
-    local body = {identifier = lDigest(fGetHwid()),key = key}
-    if useNonce then body.nonce = nonce; end
-    local response = safeRequest({Url = endpoint,Method = "POST",Body = lEncode(body),Headers = {["Content-Type"] = "application/json"}});
+    local endpoint = PBhost .. "/public/redeem/" .. fToString(PBservice);
+    local body = { identifier = lDigest(fGetHwid()), key = key }
+    if PBuseNonce then body.nonce = nonce; end
+    local response = safeRequest({Url = endpoint, Method = "POST", Body = lEncode(body), Headers = { ["Content-Type"] = "application/json" }});
     if response.StatusCode == 200 then
         local decoded = lDecode(response.Body);
         if decoded.success == true then
             if decoded.data.valid == true then
-                if useNonce then if decoded.data.hash == lDigest("true" .. "-" .. nonce .. "-" .. secret) then return true; else onMessage("failed to verify integrity.");return false; end else return true; end
-            else onMessage("key is invalid.");return false; end
-        else
-            if fStringSub(decoded.message, 1, 27) == "unique constraint violation" then onMessage("you already have an active key, please wait for it to expire before redeeming it.");return false; else onMessage(decoded.message);return false; end
-        end
-    elseif response.StatusCode == 429 then onMessage("you are being rate limited, please wait 20 seconds and try again.");return false;
-    else onMessage("server returned an invalid status code, please try again later.");return false; end
-end
-local verifyKey = function(key)
-    if requestSending == true then onMessage("a request is already being sent, please slow down.");return false; else requestSending = true; end
-    local nonce = generateNonce();
-    local endpoint = host .. "/public/whitelist/" .. fToString(service) .. "?identifier=" .. lDigest(fGetHwid()) .. "&key=" .. key;
-    if useNonce then endpoint = endpoint .. "&nonce=" .. nonce; end
-    local response = safeRequest({Url = endpoint,Method = "GET",});
-    requestSending = false;
-    if response.StatusCode == 200 then
-        local decoded = lDecode(response.Body);
-        if decoded.success == true then
-            if decoded.data.valid == true then
-                if useNonce then if decoded.data.hash == lDigest("true" .. "-" .. nonce .. "-" .. secret) then return true; else onMessage("failed to verify integrity.");return false; end else return true; end
+                if PBuseNonce then
+                    if decoded.data.hash == lDigest("true" .. "-" .. nonce .. "-" .. PBsecret) then
+                        return true;
+                    else
+                        onMessage("failed to verify integrity.");
+                        return false;
+                    end
+                else
+                    return true;
+                end
             else
-                if fStringSub(key, 1, 4) == "KEY_" then return redeemKey(key); else onMessage("key is invalid.");return false; end
+                onMessage("key is invalid.");
+                return false;
             end
-        else onMessage(decoded.message);return false; end
-    elseif response.StatusCode == 429 then onMessage("you are being rate limited, please wait 20 seconds and try again.");return false;
-    else onMessage("server returned an invalid status code, please try again later.");return false; end
+        else
+            if fStringSub(decoded.message, 1, 27) == "unique constraint violation" then
+                onMessage("you already have an active key, please wait for it to expire before redeeming it.");
+                return false;
+            else
+                onMessage(decoded.message);
+                return false;
+            end
+        end
+    elseif response.StatusCode == 429 then
+        onMessage("you are being rate limited, please wait 20 seconds and try again.");
+        return false;
+    else
+        onMessage("server returned an invalid status code, please try again later.");
+        return false;
+    end
 end
+
+local verifyKey = function(key)
+    if requestSending == true then
+        onMessage("a request is already being sent, please slow down.");
+        return false;
+    else
+        requestSending = true;
+    end
+
+    local nonce = generateNonce();
+    local endpoint = PBhost .. "/public/whitelist/" .. fToString(PBservice) .. "?identifier=" .. lDigest(fGetHwid()) .. "&key=" .. key;
+    if PBuseNonce then endpoint = endpoint .. "&nonce=" .. nonce; end
+    local response = safeRequest({Url = endpoint, Method = "GET"});
+    requestSending = false;
+
+    if response.StatusCode == 200 then
+        local decoded = lDecode(response.Body);
+        if decoded.success == true then
+            if decoded.data.valid == true then
+                if PBuseNonce then
+                    if decoded.data.hash == lDigest("true" .. "-" .. nonce .. "-" .. PBsecret) then
+                        return true;
+                    else
+                        onMessage("failed to verify integrity.");
+                        return false;
+                    end
+                else
+                    return true;
+                end
+            else
+                if fStringSub(key, 1, 4) == "KEY_" then
+                    return redeemKey(key);
+                else
+                    onMessage("key is invalid.");
+                    return false;
+                end
+            end
+        else
+            onMessage(decoded.message);
+            return false;
+        end
+    elseif response.StatusCode == 429 then
+        onMessage("you are being rate limited, please wait 20 seconds and try again.");
+        return false;
+    else
+        onMessage("server returned an invalid status code, please try again later.");
+        return false;
+    end
+end
+
 local getFlag = function(name)
     local nonce = generateNonce();
-    local endpoint = host .. "/public/flag/" .. fToString(service) .. "?name=" .. name;
-    if useNonce then endpoint = endpoint .. "&nonce=" .. nonce; end
-    local response = safeRequest({Url = endpoint,Method = "GET",});
+    local endpoint = PBhost .. "/public/flag/" .. fToString(PBservice) .. "?name=" .. name;
+    if PBuseNonce then endpoint = endpoint .. "&nonce=" .. nonce; end
+    local response = safeRequest({Url = endpoint, Method = "GET"});
     if response.StatusCode == 200 then
         local decoded = lDecode(response.Body);
         if decoded.success == true then
-            if useNonce then if decoded.data.hash == lDigest(fToString(decoded.data.value) .. "-" .. nonce .. "-" .. secret) then return decoded.data.value; else onMessage("failed to verify integrity.");return nil; end else return decoded.data.value; end
-        else onMessage(decoded.message);return nil; end
-    else return nil; end
+            if PBuseNonce then
+                if decoded.data.hash == lDigest(fToString(decoded.data.value) .. "-" .. nonce .. "-" .. PBsecret) then
+                    return decoded.data.value;
+                else
+                    onMessage("failed to verify integrity.");
+                    return nil;
+                end
+            else
+                return decoded.data.value;
+            end
+        else
+            onMessage(decoded.message);
+            return nil;
+        end
+    else
+        return nil;
+    end
 end
--- ═══════════════════════════════════════════════════════════
--- FIN PLATOBOOST
--- ═══════════════════════════════════════════════════════════
 
+-- ═══════════════════════════════════════════════════════════
+-- VARIABLES GLOBALES
+-- ═══════════════════════════════════════════════════════════
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -100,11 +234,11 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
-local IMAGEN_FONDO_KEY = "rbxassetid://99207554472358"
+local FUENTE = "rbxassetid://12187371840"
+local IMAGEN_FONDO_KEY = "rbxassetid://82523705789594"
 local IMAGEN_FONDO_UI = "rbxassetid://77642622960834"
 local IMAGEN_CONFIG = "rbxassetid://133295481469724"
 local ICONO_BOTON = "rbxassetid://105608688810397"
-local FUENTE = "rbxassetid://12187371840"
 local ICONO_TIKTOK = "rbxassetid://91622618941280"
 local ICONO_DISCORD = "rbxassetid://85484027872754"
 local LINK_TIKTOK = "https://www.tiktok.com/@radical_hub?_r=1&_t=ZS-9A1FY0Yi990"
@@ -129,17 +263,20 @@ local currentFPS = 0
 local currentPing = 0
 local notifEnabled = true
 
+local fSetClipboard2 = setclipboard or toclipboard
+
 local function applyFont(label, weight)
     pcall(function() label.FontFace = Font.new(FUENTE, weight or Enum.FontWeight.Regular, Enum.FontStyle.Normal) end)
 end
+
+local function getDate() return os.date("%d/%m/%Y") end
+local function getTime() return os.date("%H:%M:%S") end
 
 local oldGui = PlayerGui:FindFirstChild("AHKUI")
 if oldGui then oldGui:Destroy() end
 local oldKey = PlayerGui:FindFirstChild("KeySystemUI")
 if oldKey then oldKey:Destroy() end
 
-local function getDate() return os.date("%d/%m/%Y") end
-local function getTime() return os.date("%H:%M:%S") end
 local function sendWebhook(url, data)
     local req = request or http_request or syn_request
     if not req then return end
@@ -278,7 +415,7 @@ local function addPressAnim(btn)
 end
 
 -- ═══════════════════════════════════════════════════════════
--- KEY SYSTEM
+-- KEY SYSTEM (GRANDE)
 -- ═══════════════════════════════════════════════════════════
 function showKeySystem()
 
@@ -286,6 +423,7 @@ local keyScreenGui = Instance.new("ScreenGui")
 keyScreenGui.Name = "KeySystemUI"
 keyScreenGui.ResetOnSpawn = false
 keyScreenGui.IgnoreGuiInset = true
+keyScreenGui.DisplayOrder = 999
 keyScreenGui.Parent = PlayerGui
 
 local keyOverlay = Instance.new("Frame")
@@ -297,10 +435,10 @@ keyOverlay.ZIndex = 1
 keyOverlay.Parent = keyScreenGui
 
 local keyPanel = Instance.new("Frame")
-keyPanel.Size = UDim2.new(0, 485, 0, 275)
+keyPanel.Size = UDim2.new(0, 700, 0, 380)
 keyPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
 keyPanel.AnchorPoint = Vector2.new(0.5, 0.5)
-keyPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+keyPanel.BackgroundColor3 = Color3.fromRGB(10, 15, 30)
 keyPanel.BorderSizePixel = 0
 keyPanel.ClipsDescendants = true
 keyPanel.ZIndex = 2
@@ -309,192 +447,800 @@ Instance.new("UICorner", keyPanel).CornerRadius = UDim.new(0, 14)
 
 local keyStroke = Instance.new("UIStroke")
 keyStroke.Thickness = 2
-keyStroke.Color = currentTheme.Main
+keyStroke.Color = Color3.fromRGB(0, 120, 255)
 keyStroke.Transparency = 0.2
 keyStroke.Parent = keyPanel
 
+task.spawn(function()
+    while keyStroke and keyStroke.Parent do
+        pcall(function()
+            TweenService:Create(keyStroke, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Transparency = 0.5 }):Play()
+            task.wait(2)
+            TweenService:Create(keyStroke, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Transparency = 0.1 }):Play()
+            task.wait(2)
+        end)
+    end
+end)
+
 local keyBg = Instance.new("ImageLabel")
 keyBg.Size = UDim2.new(1, 0, 1, 0)
+keyBg.Position = UDim2.new(0, 0, 0, 0)
 keyBg.BackgroundTransparency = 1
 keyBg.Image = IMAGEN_FONDO_KEY
 keyBg.ScaleType = Enum.ScaleType.Crop
 keyBg.ZIndex = 2
 keyBg.Parent = keyPanel
 
+task.spawn(function()
+    while keyBg and keyBg.Parent do
+        pcall(function()
+            TweenService:Create(keyBg, TweenInfo.new(8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                Size = UDim2.new(1.15, 0, 1.15, 0),
+                Position = UDim2.new(-0.075, 0, -0.075, 0)
+            }):Play()
+            task.wait(8)
+            TweenService:Create(keyBg, TweenInfo.new(8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                Size = UDim2.new(1, 0, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0)
+            }):Play()
+            task.wait(8)
+        end)
+    end
+end)
+
+local bgTint = Instance.new("UIGradient")
+bgTint.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 200, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 80, 200))
+})
+bgTint.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.65),
+    NumberSequenceKeypoint.new(0.5, 0.75),
+    NumberSequenceKeypoint.new(1, 0.65)
+})
+bgTint.Rotation = 0
+bgTint.Parent = keyBg
+
+task.spawn(function()
+    while bgTint and bgTint.Parent do
+        for i = 0, 360, 4 do
+            if not bgTint.Parent then break end
+            bgTint.Rotation = i
+            task.wait(0.05)
+        end
+    end
+end)
+
 local keyDark = Instance.new("Frame")
 keyDark.Size = UDim2.new(1, 0, 1, 0)
 keyDark.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-keyDark.BackgroundTransparency = 0.85
+keyDark.BackgroundTransparency = 0.55
 keyDark.BorderSizePixel = 0
 keyDark.ZIndex = 3
 keyDark.Parent = keyPanel
 
-local keyTitle = Instance.new("TextLabel")
-keyTitle.Size = UDim2.new(1, -30, 0, 26)
-keyTitle.Position = UDim2.new(0, 15, 0, 12)
-keyTitle.BackgroundTransparency = 1
-keyTitle.Text = "lua+C"
-keyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-keyTitle.TextSize = 18
-keyTitle.Font = Enum.Font.GothamBold
-keyTitle.TextXAlignment = Enum.TextXAlignment.Left
-keyTitle.ZIndex = 6
-keyTitle.Parent = keyPanel
-applyFont(keyTitle, Enum.FontWeight.Bold)
+local keyParticles = Instance.new("Frame")
+keyParticles.Size = UDim2.new(1, 0, 1, 0)
+keyParticles.BackgroundTransparency = 1
+keyParticles.ClipsDescendants = true
+keyParticles.ZIndex = 4
+keyParticles.Parent = keyPanel
 
-local discordIcon = Instance.new("ImageButton")
-discordIcon.Size = UDim2.new(0, 25, 0, 25)
-discordIcon.Position = UDim2.new(1, -60, 0, 13)
-discordIcon.BackgroundTransparency = 1
-discordIcon.Image = ICONO_DISCORD
-discordIcon.ScaleType = Enum.ScaleType.Fit
-discordIcon.ZIndex = 6
-discordIcon.Parent = keyPanel
+local keyActiveParticles = 0
+local function keySpawnParticle()
+    if keyActiveParticles >= 10 then return end
+    keyActiveParticles = keyActiveParticles + 1
+    local p = Instance.new("Frame")
+    p.Size = UDim2.new(0, math.random(2, 4), 0, math.random(6, 14))
+    p.Position = UDim2.new(math.random(), 0, -0.1, 0)
+    p.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+    p.BackgroundTransparency = math.random(4, 7) / 10
+    p.BorderSizePixel = 0
+    p.ZIndex = 4
+    p.Parent = keyParticles
+    Instance.new("UICorner", p).CornerRadius = UDim.new(1, 0)
+    local tw = TweenService:Create(p, TweenInfo.new(math.random(8, 16) / 10, Enum.EasingStyle.Linear), {
+        Position = UDim2.new(p.Position.X.Scale - 0.05, 0, 1.1, 0)
+    })
+    tw:Play()
+    tw.Completed:Connect(function()
+        keyActiveParticles = keyActiveParticles - 1
+        p:Destroy()
+    end)
+end
+task.spawn(function()
+    while keyPanel and keyPanel.Parent do
+        task.wait(0.3)
+        pcall(keySpawnParticle)
+    end
+end)
 
-local tiktokIcon = Instance.new("ImageButton")
-tiktokIcon.Size = UDim2.new(0, 25, 0, 25)
-tiktokIcon.Position = UDim2.new(1, -30, 0, 13)
-tiktokIcon.BackgroundTransparency = 1
-tiktokIcon.Image = ICONO_TIKTOK
-tiktokIcon.ScaleType = Enum.ScaleType.Fit
-tiktokIcon.ZIndex = 6
-tiktokIcon.Parent = keyPanel
+local keyCloseBtn = Instance.new("TextButton")
+keyCloseBtn.Size = UDim2.new(0, 28, 0, 28)
+keyCloseBtn.Position = UDim2.new(1, -36, 0, 8)
+keyCloseBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
+keyCloseBtn.BackgroundTransparency = 0.3
+keyCloseBtn.BorderSizePixel = 0
+keyCloseBtn.Text = "X"
+keyCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyCloseBtn.TextSize = 13
+keyCloseBtn.Font = Enum.Font.GothamBold
+keyCloseBtn.AutoButtonColor = false
+keyCloseBtn.ZIndex = 10
+keyCloseBtn.Parent = keyPanel
+Instance.new("UICorner", keyCloseBtn).CornerRadius = UDim.new(0, 6)
+
+local keyMinBtn = Instance.new("TextButton")
+keyMinBtn.Size = UDim2.new(0, 28, 0, 28)
+keyMinBtn.Position = UDim2.new(1, -70, 0, 8)
+keyMinBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
+keyMinBtn.BackgroundTransparency = 0.3
+keyMinBtn.BorderSizePixel = 0
+keyMinBtn.Text = "–"
+keyMinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyMinBtn.TextSize = 15
+keyMinBtn.Font = Enum.Font.GothamBold
+keyMinBtn.AutoButtonColor = false
+keyMinBtn.ZIndex = 10
+keyMinBtn.Parent = keyPanel
+Instance.new("UICorner", keyMinBtn).CornerRadius = UDim.new(0, 6)
+
+local leftPanel = Instance.new("Frame")
+leftPanel.Size = UDim2.new(0, 180, 1, -50)
+leftPanel.Position = UDim2.new(0, 15, 0, 40)
+leftPanel.BackgroundColor3 = Color3.fromRGB(10, 15, 30)
+leftPanel.BackgroundTransparency = 0.5
+leftPanel.BorderSizePixel = 0
+leftPanel.ZIndex = 5
+leftPanel.Parent = keyPanel
+Instance.new("UICorner", leftPanel).CornerRadius = UDim.new(0, 10)
+
+local leftStroke = Instance.new("UIStroke")
+leftStroke.Thickness = 1
+leftStroke.Color = Color3.fromRGB(0, 120, 255)
+leftStroke.Transparency = 0.5
+leftStroke.Parent = leftPanel
+
+local lockIconFrame = Instance.new("Frame")
+lockIconFrame.Size = UDim2.new(0, 60, 0, 60)
+lockIconFrame.Position = UDim2.new(0.5, -30, 0, 20)
+lockIconFrame.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+lockIconFrame.BackgroundTransparency = 0.3
+lockIconFrame.BorderSizePixel = 0
+lockIconFrame.ZIndex = 6
+lockIconFrame.Parent = leftPanel
+Instance.new("UICorner", lockIconFrame).CornerRadius = UDim.new(1, 0)
+
+local lockGlow = Instance.new("UIStroke")
+lockGlow.Thickness = 2
+lockGlow.Color = Color3.fromRGB(100, 200, 255)
+lockGlow.Transparency = 0.3
+lockGlow.Parent = lockIconFrame
+
+task.spawn(function()
+    while lockGlow and lockGlow.Parent do
+        pcall(function()
+            TweenService:Create(lockGlow, TweenInfo.new(1.5), { Transparency = 0.8 }):Play()
+            task.wait(1.5)
+            TweenService:Create(lockGlow, TweenInfo.new(1.5), { Transparency = 0.2 }):Play()
+            task.wait(1.5)
+        end)
+    end
+end)
+
+local lockEmoji = Instance.new("TextLabel")
+lockEmoji.Size = UDim2.new(1, 0, 1, 0)
+lockEmoji.BackgroundTransparency = 1
+lockEmoji.Text = "🔒"
+lockEmoji.TextColor3 = Color3.fromRGB(255, 255, 255)
+lockEmoji.TextSize = 30
+lockEmoji.Font = Enum.Font.GothamBold
+lockEmoji.ZIndex = 7
+lockEmoji.Parent = lockIconFrame
+
+local leftTitle = Instance.new("TextLabel")
+leftTitle.Size = UDim2.new(1, -20, 0, 24)
+leftTitle.Position = UDim2.new(0, 10, 0, 90)
+leftTitle.BackgroundTransparency = 1
+leftTitle.Text = "LUA+C"
+leftTitle.TextColor3 = Color3.fromRGB(100, 200, 255)
+leftTitle.TextSize = 20
+leftTitle.Font = Enum.Font.GothamBold
+leftTitle.TextXAlignment = Enum.TextXAlignment.Center
+leftTitle.ZIndex = 6
+leftTitle.Parent = leftPanel
+applyFont(leftTitle, Enum.FontWeight.Bold)
+
+local leftTitleGradient = Instance.new("UIGradient")
+leftTitleGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 120, 255))
+})
+leftTitleGradient.Parent = leftTitle
+
+task.spawn(function()
+    while leftTitleGradient and leftTitleGradient.Parent do
+        for i = 0, 360, 8 do
+            if not leftTitleGradient.Parent then break end
+            leftTitleGradient.Rotation = i
+            task.wait(0.04)
+        end
+    end
+end)
+
+local leftSubtitle = Instance.new("TextLabel")
+leftSubtitle.Size = UDim2.new(1, -20, 0, 32)
+leftSubtitle.Position = UDim2.new(0, 10, 0, 116)
+leftSubtitle.BackgroundTransparency = 1
+leftSubtitle.Text = "Script for\nBlox Fruits"
+leftSubtitle.TextColor3 = Color3.fromRGB(180, 210, 255)
+leftSubtitle.TextSize = 11
+leftSubtitle.Font = Enum.Font.Gotham
+leftSubtitle.TextXAlignment = Enum.TextXAlignment.Center
+leftSubtitle.TextWrapped = true
+leftSubtitle.ZIndex = 6
+leftSubtitle.Parent = leftPanel
+applyFont(leftSubtitle, Enum.FontWeight.Regular)
+
+local leftDiv = Instance.new("Frame")
+leftDiv.Size = UDim2.new(0.8, 0, 0, 1)
+leftDiv.Position = UDim2.new(0.1, 0, 0, 160)
+leftDiv.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+leftDiv.BackgroundTransparency = 0.5
+leftDiv.BorderSizePixel = 0
+leftDiv.ZIndex = 6
+leftDiv.Parent = leftPanel
+
+local leftBy = Instance.new("TextLabel")
+leftBy.Size = UDim2.new(1, -20, 0, 16)
+leftBy.Position = UDim2.new(0, 10, 0, 172)
+leftBy.BackgroundTransparency = 1
+leftBy.Text = "by LUA IA"
+leftBy.TextColor3 = Color3.fromRGB(150, 200, 255)
+leftBy.TextSize = 10
+leftBy.Font = Enum.Font.GothamBold
+leftBy.TextXAlignment = Enum.TextXAlignment.Center
+leftBy.ZIndex = 6
+leftBy.Parent = leftPanel
+applyFont(leftBy, Enum.FontWeight.Bold)
+
+local leftUser = Instance.new("TextLabel")
+leftUser.Size = UDim2.new(1, -20, 0, 14)
+leftUser.Position = UDim2.new(0, 10, 0, 190)
+leftUser.BackgroundTransparency = 1
+leftUser.Text = "LUA IA"
+leftUser.TextColor3 = Color3.fromRGB(200, 220, 255)
+leftUser.TextSize = 9
+leftUser.Font = Enum.Font.Gotham
+leftUser.TextXAlignment = Enum.TextXAlignment.Center
+leftUser.ZIndex = 6
+leftUser.Parent = leftPanel
+applyFont(leftUser, Enum.FontWeight.Regular)
+
+local leftInfo = Instance.new("TextLabel")
+leftInfo.Size = UDim2.new(1, -20, 0, 50)
+leftInfo.Position = UDim2.new(0, 10, 1, -60)
+leftInfo.BackgroundTransparency = 1
+leftInfo.Text = "LUA IA es una\ninteligencia artificial\ncreada para ayudarte"
+leftInfo.TextColor3 = Color3.fromRGB(140, 170, 210)
+leftInfo.TextSize = 8
+leftInfo.Font = Enum.Font.Gotham
+leftInfo.TextXAlignment = Enum.TextXAlignment.Center
+leftInfo.TextYAlignment = Enum.TextYAlignment.Top
+leftInfo.TextWrapped = true
+leftInfo.ZIndex = 6
+leftInfo.Parent = leftPanel
+applyFont(leftInfo, Enum.FontWeight.Regular)
+
+local centerPanel = Instance.new("Frame")
+centerPanel.Size = UDim2.new(0, 290, 1, -50)
+centerPanel.Position = UDim2.new(0, 205, 0, 40)
+centerPanel.BackgroundColor3 = Color3.fromRGB(10, 15, 30)
+centerPanel.BackgroundTransparency = 0.5
+centerPanel.BorderSizePixel = 0
+centerPanel.ZIndex = 5
+centerPanel.Parent = keyPanel
+Instance.new("UICorner", centerPanel).CornerRadius = UDim.new(0, 10)
+
+local centerStroke = Instance.new("UIStroke")
+centerStroke.Thickness = 1
+centerStroke.Color = Color3.fromRGB(0, 120, 255)
+centerStroke.Transparency = 0.5
+centerStroke.Parent = centerPanel
+
+local centerTitle = Instance.new("TextLabel")
+centerTitle.Size = UDim2.new(1, -20, 0, 22)
+centerTitle.Position = UDim2.new(0, 12, 0, 12)
+centerTitle.BackgroundTransparency = 1
+centerTitle.Text = "LUA+C"
+centerTitle.TextColor3 = Color3.fromRGB(100, 200, 255)
+centerTitle.TextSize = 14
+centerTitle.Font = Enum.Font.GothamBold
+centerTitle.TextXAlignment = Enum.TextXAlignment.Left
+centerTitle.ZIndex = 6
+centerTitle.Parent = centerPanel
+applyFont(centerTitle, Enum.FontWeight.Bold)
+
+local centerSub = Instance.new("TextLabel")
+centerSub.Size = UDim2.new(1, -20, 0, 14)
+centerSub.Position = UDim2.new(0, 12, 0, 34)
+centerSub.BackgroundTransparency = 1
+centerSub.Text = "Enter your key to continue"
+centerSub.TextColor3 = Color3.fromRGB(150, 180, 220)
+centerSub.TextSize = 9
+centerSub.Font = Enum.Font.Gotham
+centerSub.TextXAlignment = Enum.TextXAlignment.Left
+centerSub.ZIndex = 6
+centerSub.Parent = centerPanel
+applyFont(centerSub, Enum.FontWeight.Regular)
 
 local keyBox = Instance.new("TextBox")
-keyBox.Size = UDim2.new(1, -30, 0, 42)
-keyBox.Position = UDim2.new(0, 15, 0, 65)
-keyBox.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-keyBox.BackgroundTransparency = 0.15
+keyBox.Size = UDim2.new(1, -66, 0, 42)
+keyBox.Position = UDim2.new(0, 12, 0, 65)
+keyBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+keyBox.BackgroundTransparency = 0.6
 keyBox.BorderSizePixel = 0
 keyBox.Text = ""
 keyBox.PlaceholderText = "Ingresa tu key..."
-keyBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+keyBox.PlaceholderColor3 = Color3.fromRGB(140, 170, 210)
 keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 keyBox.TextSize = 13
 keyBox.Font = Enum.Font.Gotham
 keyBox.TextXAlignment = Enum.TextXAlignment.Left
 keyBox.ClearTextOnFocus = false
 keyBox.ZIndex = 6
-keyBox.Parent = keyPanel
+keyBox.Parent = centerPanel
 Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0, 8)
 local keyBoxPad = Instance.new("UIPadding")
 keyBoxPad.PaddingLeft = UDim.new(0, 12)
 keyBoxPad.Parent = keyBox
+
 local keyBoxStroke = Instance.new("UIStroke")
 keyBoxStroke.Thickness = 1.5
-keyBoxStroke.Color = COLOR_GRIS
+keyBoxStroke.Color = Color3.fromRGB(0, 120, 255)
+keyBoxStroke.Transparency = 0.3
 keyBoxStroke.Parent = keyBox
 
+keyBox.Focused:Connect(function()
+    TweenService:Create(keyBoxStroke, TweenInfo.new(0.2), { Transparency = 0 }):Play()
+    TweenService:Create(keyBox, TweenInfo.new(0.2), { BackgroundTransparency = 0.4 }):Play()
+end)
+keyBox.FocusLost:Connect(function()
+    TweenService:Create(keyBoxStroke, TweenInfo.new(0.2), { Transparency = 0.3 }):Play()
+    TweenService:Create(keyBox, TweenInfo.new(0.2), { BackgroundTransparency = 0.6 }):Play()
+end)
+
+local pasteBtn = Instance.new("TextButton")
+pasteBtn.Size = UDim2.new(0, 42, 0, 42)
+pasteBtn.Position = UDim2.new(1, -54, 0, 65)
+pasteBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+pasteBtn.BackgroundTransparency = 0.7
+pasteBtn.BorderSizePixel = 0
+pasteBtn.Text = "📋"
+pasteBtn.TextSize = 18
+pasteBtn.Font = Enum.Font.GothamBold
+pasteBtn.AutoButtonColor = false
+pasteBtn.ZIndex = 7
+pasteBtn.Parent = centerPanel
+Instance.new("UICorner", pasteBtn).CornerRadius = UDim.new(0, 8)
+local pasteStroke = Instance.new("UIStroke")
+pasteStroke.Thickness = 1.5
+pasteStroke.Color = Color3.fromRGB(0, 120, 255)
+pasteStroke.Transparency = 0.3
+pasteStroke.Parent = pasteBtn
+
 local submitBtn = Instance.new("TextButton")
-submitBtn.Size = UDim2.new(1, -30, 0, 42)
-submitBtn.Position = UDim2.new(0, 15, 0, 117)
-submitBtn.BackgroundColor3 = currentTheme.Main
+submitBtn.Size = UDim2.new(1, -24, 0, 44)
+submitBtn.Position = UDim2.new(0, 12, 0, 120)
+submitBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+submitBtn.BackgroundTransparency = 0.75
 submitBtn.BorderSizePixel = 0
-submitBtn.Text = "VERIFICAR"
+submitBtn.Text = "✦  VERIFICAR  ✦"
 submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-submitBtn.TextSize = 13
+submitBtn.TextSize = 14
 submitBtn.Font = Enum.Font.GothamBold
 submitBtn.AutoButtonColor = false
-submitBtn.ZIndex = 6
-submitBtn.Parent = keyPanel
+submitBtn.ZIndex = 7
+submitBtn.Parent = centerPanel
 applyFont(submitBtn, Enum.FontWeight.Bold)
 Instance.new("UICorner", submitBtn).CornerRadius = UDim.new(0, 8)
 
-local getKeyBtn = Instance.new("TextButton")
-getKeyBtn.Size = UDim2.new(1, -30, 0, 40)
-getKeyBtn.Position = UDim2.new(0, 15, 0, 169)
-getKeyBtn.BackgroundColor3 = COLOR_GRIS
-getKeyBtn.BorderSizePixel = 0
-getKeyBtn.Text = "Obtener Key"
-getKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-getKeyBtn.TextSize = 13
-getKeyBtn.Font = Enum.Font.GothamBold
-getKeyBtn.AutoButtonColor = false
-getKeyBtn.ZIndex = 6
-getKeyBtn.Parent = keyPanel
-applyFont(getKeyBtn, Enum.FontWeight.Bold)
-Instance.new("UICorner", getKeyBtn).CornerRadius = UDim.new(0, 8)
+local submitStroke = Instance.new("UIStroke")
+submitStroke.Thickness = 1.5
+submitStroke.Color = Color3.fromRGB(100, 200, 255)
+submitStroke.Transparency = 0.2
+submitStroke.Parent = submitBtn
+
+task.spawn(function()
+    while submitStroke and submitStroke.Parent do
+        pcall(function()
+            TweenService:Create(submitStroke, TweenInfo.new(1.5), { Transparency = 0.6 }):Play()
+            task.wait(1.5)
+            TweenService:Create(submitStroke, TweenInfo.new(1.5), { Transparency = 0.1 }):Play()
+            task.wait(1.5)
+        end)
+    end
+end)
 
 local keyFeedback = Instance.new("TextLabel")
-keyFeedback.Size = UDim2.new(1, -30, 0, 18)
-keyFeedback.Position = UDim2.new(0, 15, 0, 220)
+keyFeedback.Size = UDim2.new(1, -24, 0, 20)
+keyFeedback.Position = UDim2.new(0, 12, 0, 175)
 keyFeedback.BackgroundTransparency = 1
-keyFeedback.Text = ""
-keyFeedback.TextColor3 = Color3.fromRGB(220, 220, 230)
-keyFeedback.TextSize = 12
+keyFeedback.Text = "Ready"
+keyFeedback.TextColor3 = Color3.fromRGB(180, 210, 255)
+keyFeedback.TextSize = 11
 keyFeedback.Font = Enum.Font.Gotham
 keyFeedback.TextXAlignment = Enum.TextXAlignment.Center
 keyFeedback.ZIndex = 6
-keyFeedback.Parent = keyPanel
+keyFeedback.Parent = centerPanel
 applyFont(keyFeedback, Enum.FontWeight.Regular)
 
-local function shakeKey()
+local centerBottom = Instance.new("TextLabel")
+centerBottom.Size = UDim2.new(1, -24, 0, 16)
+centerBottom.Position = UDim2.new(0, 12, 1, -24)
+centerBottom.BackgroundTransparency = 1
+centerBottom.Text = "LUA+C"
+centerBottom.TextColor3 = Color3.fromRGB(100, 200, 255)
+centerBottom.TextSize = 10
+centerBottom.Font = Enum.Font.GothamBold
+centerBottom.TextXAlignment = Enum.TextXAlignment.Center
+centerBottom.ZIndex = 6
+centerBottom.Parent = centerPanel
+applyFont(centerBottom, Enum.FontWeight.Bold)
+
+local rightPanel = Instance.new("Frame")
+rightPanel.Size = UDim2.new(0, 180, 1, -50)
+rightPanel.Position = UDim2.new(1, -195, 0, 40)
+rightPanel.BackgroundColor3 = Color3.fromRGB(10, 15, 30)
+rightPanel.BackgroundTransparency = 0.5
+rightPanel.BorderSizePixel = 0
+rightPanel.ZIndex = 5
+rightPanel.Parent = keyPanel
+Instance.new("UICorner", rightPanel).CornerRadius = UDim.new(0, 10)
+
+local rightStroke = Instance.new("UIStroke")
+rightStroke.Thickness = 1
+rightStroke.Color = Color3.fromRGB(0, 120, 255)
+rightStroke.Transparency = 0.5
+rightStroke.Parent = rightPanel
+
+local rightTitle = Instance.new("TextLabel")
+rightTitle.Size = UDim2.new(1, -20, 0, 18)
+rightTitle.Position = UDim2.new(0, 10, 0, 12)
+rightTitle.BackgroundTransparency = 1
+rightTitle.Text = "GET KEY"
+rightTitle.TextColor3 = Color3.fromRGB(100, 200, 255)
+rightTitle.TextSize = 12
+rightTitle.Font = Enum.Font.GothamBold
+rightTitle.TextXAlignment = Enum.TextXAlignment.Center
+rightTitle.ZIndex = 6
+rightTitle.Parent = rightPanel
+applyFont(rightTitle, Enum.FontWeight.Bold)
+
+local getKeyBtn = Instance.new("TextButton")
+getKeyBtn.Size = UDim2.new(1, -20, 0, 38)
+getKeyBtn.Position = UDim2.new(0, 10, 0, 38)
+getKeyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+getKeyBtn.BackgroundTransparency = 0.15
+getKeyBtn.BorderSizePixel = 0
+getKeyBtn.Text = "🔗  GET KEY"
+getKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+getKeyBtn.TextSize = 11
+getKeyBtn.Font = Enum.Font.GothamBold
+getKeyBtn.AutoButtonColor = false
+getKeyBtn.ZIndex = 6
+getKeyBtn.Parent = rightPanel
+applyFont(getKeyBtn, Enum.FontWeight.Bold)
+Instance.new("UICorner", getKeyBtn).CornerRadius = UDim.new(0, 8)
+
+local getKeyStroke = Instance.new("UIStroke")
+getKeyStroke.Thickness = 1.5
+getKeyStroke.Color = Color3.fromRGB(100, 200, 255)
+getKeyStroke.Transparency = 0.3
+getKeyStroke.Parent = getKeyBtn
+
+local rightDiv = Instance.new("Frame")
+rightDiv.Size = UDim2.new(0.8, 0, 0, 1)
+rightDiv.Position = UDim2.new(0.1, 0, 0, 88)
+rightDiv.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+rightDiv.BackgroundTransparency = 0.5
+rightDiv.BorderSizePixel = 0
+rightDiv.ZIndex = 6
+rightDiv.Parent = rightPanel
+
+local hourLabel = Instance.new("TextLabel")
+hourLabel.Size = UDim2.new(1, -20, 0, 16)
+hourLabel.Position = UDim2.new(0, 10, 0, 100)
+hourLabel.BackgroundTransparency = 1
+hourLabel.Text = "⏰  00:00:00"
+hourLabel.TextColor3 = Color3.fromRGB(200, 220, 255)
+hourLabel.TextSize = 10
+hourLabel.Font = Enum.Font.GothamBold
+hourLabel.TextXAlignment = Enum.TextXAlignment.Center
+hourLabel.ZIndex = 6
+hourLabel.Parent = rightPanel
+applyFont(hourLabel, Enum.FontWeight.Bold)
+
+local dateLabel = Instance.new("TextLabel")
+dateLabel.Size = UDim2.new(1, -20, 0, 16)
+dateLabel.Position = UDim2.new(0, 10, 0, 120)
+dateLabel.BackgroundTransparency = 1
+dateLabel.Text = "📅  00/00/0000"
+dateLabel.TextColor3 = Color3.fromRGB(180, 210, 255)
+dateLabel.TextSize = 9
+dateLabel.Font = Enum.Font.Gotham
+dateLabel.TextXAlignment = Enum.TextXAlignment.Center
+dateLabel.ZIndex = 6
+dateLabel.Parent = rightPanel
+applyFont(dateLabel, Enum.FontWeight.Regular)
+
+local rightDiv2 = Instance.new("Frame")
+rightDiv2.Size = UDim2.new(0.8, 0, 0, 1)
+rightDiv2.Position = UDim2.new(0.1, 0, 0, 145)
+rightDiv2.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+rightDiv2.BackgroundTransparency = 0.5
+rightDiv2.BorderSizePixel = 0
+rightDiv2.ZIndex = 6
+rightDiv2.Parent = rightPanel
+
+local discordIcon = Instance.new("ImageButton")
+discordIcon.Size = UDim2.new(0, 30, 0, 30)
+discordIcon.Position = UDim2.new(0.5, -35, 0, 158)
+discordIcon.BackgroundTransparency = 1
+discordIcon.Image = ICONO_DISCORD
+discordIcon.ScaleType = Enum.ScaleType.Fit
+discordIcon.ZIndex = 6
+discordIcon.Parent = rightPanel
+
+local tiktokIcon = Instance.new("ImageButton")
+tiktokIcon.Size = UDim2.new(0, 30, 0, 30)
+tiktokIcon.Position = UDim2.new(0.5, 5, 0, 158)
+tiktokIcon.BackgroundTransparency = 1
+tiktokIcon.Image = ICONO_TIKTOK
+tiktokIcon.ScaleType = Enum.ScaleType.Fit
+tiktokIcon.ZIndex = 6
+tiktokIcon.Parent = rightPanel
+
+local systemLabel = Instance.new("TextLabel")
+systemLabel.Size = UDim2.new(1, -20, 0, 14)
+systemLabel.Position = UDim2.new(0, 10, 1, -50)
+systemLabel.BackgroundTransparency = 1
+systemLabel.Text = "SYSTEM USE"
+systemLabel.TextColor3 = Color3.fromRGB(140, 170, 210)
+systemLabel.TextSize = 9
+systemLabel.Font = Enum.Font.GothamBold
+systemLabel.TextXAlignment = Enum.TextXAlignment.Center
+systemLabel.ZIndex = 6
+systemLabel.Parent = rightPanel
+applyFont(systemLabel, Enum.FontWeight.Bold)
+
+local systemValue = Instance.new("TextLabel")
+systemValue.Size = UDim2.new(1, -20, 0, 16)
+systemValue.Position = UDim2.new(0, 10, 1, -32)
+systemValue.BackgroundTransparency = 1
+systemValue.Text = "Platoboost"
+systemValue.TextColor3 = Color3.fromRGB(100, 200, 255)
+systemValue.TextSize = 11
+systemValue.Font = Enum.Font.GothamBold
+systemValue.TextXAlignment = Enum.TextXAlignment.Center
+systemValue.ZIndex = 6
+systemValue.Parent = rightPanel
+applyFont(systemValue, Enum.FontWeight.Bold)
+
+task.spawn(function()
+    while keyPanel and keyPanel.Parent do
+        task.wait(1)
+        pcall(function()
+            hourLabel.Text = "⏰  " .. getTime()
+            dateLabel.Text = "📅  " .. getDate()
+        end)
+    end
+end)
+
+local function showKeyNotif(titulo, texto, colorTipo)
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(0, 240, 0, 55)
+    notif.Position = UDim2.new(0.5, -120, 0, -70)
+    notif.BackgroundColor3 = Color3.fromRGB(15, 20, 35)
+    notif.BackgroundTransparency = 0.1
+    notif.BorderSizePixel = 0
+    notif.ZIndex = 101
+    notif.Parent = keyScreenGui
+    Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 10)
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 2
+    stroke.Color = colorTipo or Color3.fromRGB(0, 120, 255)
+    stroke.Parent = notif
+    
+    local t = Instance.new("TextLabel")
+    t.Size = UDim2.new(1, -16, 0, 16)
+    t.Position = UDim2.new(0, 10, 0, 6)
+    t.BackgroundTransparency = 1
+    t.Text = titulo
+    t.TextColor3 = colorTipo or Color3.fromRGB(0, 120, 255)
+    t.TextSize = 11
+    t.Font = Enum.Font.GothamBold
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.ZIndex = 102
+    t.Parent = notif
+    applyFont(t, Enum.FontWeight.Bold)
+    
+    local tx = Instance.new("TextLabel")
+    tx.Size = UDim2.new(1, -16, 0, 18)
+    tx.Position = UDim2.new(0, 10, 0, 24)
+    tx.BackgroundTransparency = 1
+    tx.Text = texto
+    tx.TextColor3 = Color3.fromRGB(200, 210, 230)
+    tx.TextSize = 9
+    tx.Font = Enum.Font.Gotham
+    tx.TextXAlignment = Enum.TextXAlignment.Left
+    tx.TextTruncate = Enum.TextTruncate.AtEnd
+    tx.ZIndex = 102
+    tx.Parent = notif
+    applyFont(tx, Enum.FontWeight.Regular)
+    
+    TweenService:Create(notif, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -120, 0, 20)
+    }):Play()
+    
+    task.delay(3.5, function()
+        TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(0.5, -120, 0, -80)
+        }):Play()
+        task.wait(0.35)
+        if notif then notif:Destroy() end
+    end)
+end
+
+onMessage = function(message)
+    showKeyNotif("Platoboost", tostring(message), Color3.fromRGB(255, 180, 100))
+end
+
+local function shakePanel()
     local orig = keyPanel.Position
-    for i = 1, 4 do
+    for i = 1, 5 do
         local dir = (i % 2 == 0) and 1 or -1
-        keyPanel.Position = orig + UDim2.new(0.015 * dir, 0, 0, 0)
-        task.wait(0.05)
+        keyPanel.Position = orig + UDim2.new(0.008 * dir, 0, 0, 0)
+        task.wait(0.04)
     end
     keyPanel.Position = orig
 end
 
-submitBtn.MouseEnter:Connect(function()
-    TweenService:Create(submitBtn, TweenInfo.new(0.15), { BackgroundColor3 = currentTheme.Hover }):Play()
-end)
-submitBtn.MouseLeave:Connect(function()
-    TweenService:Create(submitBtn, TweenInfo.new(0.15), { BackgroundColor3 = currentTheme.Main }):Play()
-end)
-
-local function onKeyValidated(key)
-    saveKey(key)
-    TweenService:Create(keyPanel, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-        Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1
-    }):Play()
-    TweenService:Create(keyOverlay, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
-    task.wait(0.5)
+onPress(keyCloseBtn, function()
+    playClick()
     keyScreenGui:Destroy()
-    loadMainUI()
-end
+end)
 
-submitBtn.MouseButton1Click:Connect(function()
+local keyMinimized = false
+onPress(keyMinBtn, function()
+    playClick()
+    keyMinimized = not keyMinimized
+    if keyMinimized then
+        leftPanel.Visible = false
+        centerPanel.Visible = false
+        rightPanel.Visible = false
+        TweenService:Create(keyPanel, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 700, 0, 50)
+        }):Play()
+    else
+        TweenService:Create(keyPanel, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 700, 0, 380)
+        }):Play()
+        task.delay(0.3, function()
+            leftPanel.Visible = true
+            centerPanel.Visible = true
+            rightPanel.Visible = true
+        end)
+    end
+end)
+
+onClickInstant(pasteBtn, function()
+    playClick()
+    pcall(function()
+        local clip = getclipboard and getclipboard() or ""
+        if clip and clip ~= "" then
+            keyBox.Text = clip
+        end
+    end)
+end)
+
+discordIcon.MouseButton1Click:Connect(function()
+    playClick()
+    if fSetClipboard2 then
+        fSetClipboard2(LINK_DISCORD)
+        showKeyNotif("Discord", "Link copiado!", Color3.fromRGB(100, 200, 255))
+    end
+end)
+discordIcon.TouchTap:Connect(function()
+    playClick()
+    if fSetClipboard2 then
+        fSetClipboard2(LINK_DISCORD)
+        showKeyNotif("Discord", "Link copiado!", Color3.fromRGB(100, 200, 255))
+    end
+end)
+tiktokIcon.MouseButton1Click:Connect(function()
+    playClick()
+    if fSetClipboard2 then
+        fSetClipboard2(LINK_TIKTOK)
+        showKeyNotif("TikTok", "Link copiado!", Color3.fromRGB(100, 200, 255))
+    end
+end)
+tiktokIcon.TouchTap:Connect(function()
+    playClick()
+    if fSetClipboard2 then
+        fSetClipboard2(LINK_TIKTOK)
+        showKeyNotif("TikTok", "Link copiado!", Color3.fromRGB(100, 200, 255))
+    end
+end)
+
+onClickInstant(getKeyBtn, function()
+    playClick()
+    keyFeedback.Text = "Generando link..."
+    keyFeedback.TextColor3 = Color3.fromRGB(100, 200, 255)
+    task.spawn(function()
+        local ok, link = copyLink();
+        if ok then
+            showKeyNotif("GET KEY", "Link copiado al portapapeles!", Color3.fromRGB(100, 255, 150))
+            keyFeedback.Text = "Link copiado!"
+            keyFeedback.TextColor3 = Color3.fromRGB(100, 255, 150)
+        else
+            keyFeedback.Text = "Error al generar link"
+            keyFeedback.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        task.wait(2)
+        keyFeedback.Text = "Ready"
+        keyFeedback.TextColor3 = Color3.fromRGB(180, 210, 255)
+    end)
+end)
+
+local isVerifying = false
+onClickInstant(submitBtn, function()
+    if isVerifying then return end
+    
     local input = keyBox.Text
     if input == "" then
-        keyFeedback.Text = "Ingresa una key"
-        keyFeedback.TextColor3 = currentTheme.Main
-        shakeKey()
+        keyFeedback.Text = "⚠️  Ingresa una key"
+        keyFeedback.TextColor3 = Color3.fromRGB(255, 100, 100)
+        shakePanel()
+        playClick()
         return
     end
-    keyFeedback.Text = "Verificando..."
-    keyFeedback.TextColor3 = Color3.fromRGB(220, 220, 230)
-    submitBtn.Text = "..."
-    local success = verifyKey(input)
-    if success then
-        keyFeedback.Text = "Key valida. Cargando..."
-        keyFeedback.TextColor3 = currentTheme.Main
-        submitBtn.Text = "OK"
-        sendWebhook(WEBHOOK_LOGS, { content = "**KEY VALIDA**\n**UserID:** " .. LocalPlayer.UserId .. "\n**Key:** `" .. input .. "`\n**Hora:** " .. getTime() .. "\n**Fecha:** " .. getDate() })
-        task.wait(0.8)
-        onKeyValidated(input)
-    else
-        keyFeedback.Text = "Key invalida"
-        keyFeedback.TextColor3 = currentTheme.Main
-        submitBtn.Text = "VERIFICAR"
-        shakeKey()
-        task.wait(1.5)
-        keyFeedback.Text = ""
-    end
+    
+    isVerifying = true
+    playClick()
+    
+    submitBtn.Text = "✦  VERIFICANDO...  ✦"
+    keyFeedback.Text = "Conectando al servidor..."
+    keyFeedback.TextColor3 = Color3.fromRGB(100, 200, 255)
+    
+    task.spawn(function()
+        local success = verifyKey(input)
+        
+        submitBtn.Text = "✦  VERIFICAR  ✦"
+        
+        if success then
+            keyFeedback.Text = "✅  Key válida!"
+            keyFeedback.TextColor3 = Color3.fromRGB(100, 255, 150)
+            showKeyNotif("✅ KEY VÁLIDA", "Acceso concedido", Color3.fromRGB(100, 255, 150))
+            
+            task.wait(1.5)
+            keyScreenGui:Destroy()
+            loadMainUI()
+        else
+            keyFeedback.Text = "❌  Key inválida"
+            keyFeedback.TextColor3 = Color3.fromRGB(255, 100, 100)
+            shakePanel()
+            task.wait(2)
+            keyFeedback.Text = "Ready"
+            keyFeedback.TextColor3 = Color3.fromRGB(180, 210, 255)
+        end
+        
+        isVerifying = false
+    end)
 end)
-
-keyBox.FocusLost:Connect(function(enterPressed) if enterPressed then submitBtn:Activate() end end)
-getKeyBtn.MouseButton1Click:Connect(function()
-    copyLink()
-    keyFeedback.Text = "Link copiado!"
-    task.wait(1.5)
-    keyFeedback.Text = ""
-    sendWebhook(WEBHOOK_LOGS, { content = "**LINK COPIADO**\n**UserID:** " .. LocalPlayer.UserId .. "\n**Hora:** " .. getTime() .. "\n**Fecha:** " .. getDate() })
-end)
-discordIcon.MouseButton1Click:Connect(function() if fSetClipboard then fSetClipboard(LINK_DISCORD) end end)
-tiktokIcon.MouseButton1Click:Connect(function() if fSetClipboard then fSetClipboard(LINK_TIKTOK) end end)
 
 end
 
@@ -1307,9 +2053,6 @@ end
 
 selectTab(tabHome)
 
--- ═══════════════════════════════════════════════════════════
--- SETTINGS
--- ═══════════════════════════════════════════════════════════
 local settingsPanel = Instance.new("Frame")
 settingsPanel.Name = "SettingsPanel"
 settingsPanel.Size = UDim2.new(0, isMobile and 300 or 360, 0, PANEL_H)
@@ -1853,9 +2596,6 @@ discordBtn.TouchTap:Connect(copyDiscord)
 tiktokBtn.MouseButton1Click:Connect(copyTikTok)
 tiktokBtn.TouchTap:Connect(copyTikTok)
 
--- ═══════════════════════════════════════════════════════════
--- TOGGLE UI + MINIMIZE
--- ═══════════════════════════════════════════════════════════
 local uiAbierta = false
 
 function toggleUI()
