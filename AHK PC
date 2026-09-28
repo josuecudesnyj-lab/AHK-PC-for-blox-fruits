@@ -9,7 +9,7 @@
 -- ==========================================================
 -- 1) CARGAR LA LIBRERÍA
 -- ==========================================================
-local LIB_URL = "https://gist.githubusercontent.com/josuecudesnyj-lab/5ed0754ab20f0dbb7f521d776e2007a9/raw/2cd8ac9d671b8511e5dbe5d09435e63422cdc581/core.lua+c"
+local LIB_URL = "https://gist.githubusercontent.com/josuecudesnyj-lab/5ed0754ab20f0dbb7f521d776e2007a9/raw/ded316a711608f9fd3beb1107c21218ca297f07e/core.lua+c"
 
 local ok, code = pcall(function() return game:HttpGet(LIB_URL) end)
 if not ok or not code or code == "" then
